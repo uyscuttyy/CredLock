@@ -7,11 +7,14 @@ const nextConfig = {
   webpack: (config, { isServer }) => {
     config.externals.push('pino-pretty', 'lokijs', 'encoding')
     
-    // Ignore the problematic Base account module
+    // Ignore problematic modules that we don't need
     config.resolve.alias = {
       ...config.resolve.alias,
       '@base-org/account': false,
       '@coinbase/cdp-sdk': false,
+      '@x402/svm/exact/client': false,
+      '@react-native-async-storage/async-storage': false,
+      'react-native': false,
     }
     
     return config
