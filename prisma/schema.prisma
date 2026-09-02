@@ -1,0 +1,130 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./credlock.db"
+}
+
+model User {
+  id           String   @id @default(cuid())
+  wallets      Wallet[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Wallet {
+  id           String   @id @default(cuid())
+  address      String   @unique
+  userId       String?
+  user         User?    @relation(fields: [userId], references: [id])
+  activities   Activity[]
+  credentials  Credential[]
+  verifications Verification[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Chain {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  chainId     Int      @unique
+  rpcUrl      String?
+  isActive    Boolean  @default(true)
+  activities  Activity[]
+  protocols   Protocol[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Protocol {
+  id          String   @id @default(cuid())
+  name        String
+  type        String
+  chainId     String
+  chain       Chain    @relation(fields: [chainId], references: [id])
+  contractAddress String
+  activities  Activity[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([name, chainId])
+}
+
+model Activity {
+  id              String   @id @default(cuid())
+  walletId        String
+  wallet          Wallet   @relation(fields: [walletId], references: [id])
+  chainId         String
+  chain           Chain    @relation(fields: [chainId], references: [id])
+  protocolId      String?
+  protocol        Protocol? @relation(fields: [protocolId], references: [id])
+  activityType    String
+  txHash          String
+  blockNumber     BigInt
+  blockTimestamp  DateTime
+  amount          String?
+  asset           String?
+  metadata        String?
+  credentialEvents CredentialEvent[]
+  createdAt       DateTime @default(now())
+
+  @@unique([txHash, activityType])
+}
+
+model Verification {
+  id              String   @id @default(cuid())
+  walletId        String
+  wallet          Wallet   @relation(fields: [walletId], references: [id])
+  checkpoint      String
+  attestationRef  String?
+  status          String
+  verifiedAt      DateTime?
+  credentials     Credential[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Credential {
+  id              String   @id @default(cuid())
+  walletId        String
+  wallet          Wallet   @relation(fields: [walletId], references: [id])
+  verificationId  String
+  verification    Verification @relation(fields: [verificationId], references: [id])
+  type            String
+  claims          String
+  sourceChains    String
+  issuedAt        DateTime @default(now())
+  expiresAt       DateTime
+  status          String
+  lastCheckedAt   DateTime?
+  attestationRef  String?
+  attestationProof String?
+  credentialEvents CredentialEvent[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model CredentialEvent {
+  id              String   @id @default(cuid())
+  credentialId    String
+  credential      Credential @relation(fields: [credentialId], references: [id])
+  activityId      String
+  activity        Activity @relation(fields: [activityId], references: [id])
+  relevance       String
+  eventType       String
+  occurredAt      DateTime
+  createdAt       DateTime @default(now())
+}
+
+model Attestation {
+  id              String   @id @default(cuid())
+  credentialId    String   @unique
+  attestationHash String   @unique
+  proof           String?
+  status          String
+  attestedAt      DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
