@@ -12,8 +12,7 @@
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
     "gate:build": "cd contracts && forge build",
-    "gate:test": "cd contracts && forge test",
-    "demo": "tsx scripts/credlock/demo.ts"
+    "gate:test": "cd contracts && forge test"
   },
   "dependencies": {
     "@gluwa/asc-contracts": "^0.2.1",

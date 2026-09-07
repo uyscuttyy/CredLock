@@ -41,21 +41,21 @@ is ALLOW. Neither the UI nor the backend can override it.
 
 Build/test: `npm run gate:build`, `npm run gate:test` (13 tests, all green).
 
-## Run the two-attempt demo
+## Use the product
 
-Prerequisites: Sepolia RPC, Creditcoin testnet RPC, a key holding Sepolia ETH
-+ tCTC, deployed addresses (see `contracts/script/Deploy.s.sol`).
+Prerequisites: a wallet with Sepolia ETH + Creditcoin tCTC. No server key —
+every write is signed by your wallet in the UI.
 
-```bash
-cp .env.example .env   # fill SEPOLIA_RPC_URL, CREDLOCK_GATE_ADDRESS,
-                       # SOURCE_REGISTRY_ADDRESS, DEMO_PRIVATE_KEY
-npm run demo [asset-name]
-```
+1. Open `/gate`, connect your wallet (Sepolia + Creditcoin testnet).
+2. Generate a fresh asset id (or paste any bytes32).
+3. Register it on Sepolia → build the CLEAR proof → submit it → verdict ALLOW.
+4. Attempt financing → succeeds.
+5. Pledge the same asset on Sepolia → build the ENCUMBERED proof → submit →
+   verdict BLOCK.
+6. Attempt financing again → reverts with `AssetEncumbered`, signed by you.
 
-Attempt 1 registers the asset → proof → `ALLOW` → financing succeeds.
-Then the asset is pledged on Sepolia → proof → `BLOCK` → financing reverts
-with `AssetEncumbered`. Evidence (every real tx hash) lands in
-`demo-evidence/<assetId>.json`.
+Unknown assets honestly read UNVERIFIED with empty history. There is no
+preloaded path: the chain is the only source of truth.
 
 ## Inspect the proof (judge path)
 

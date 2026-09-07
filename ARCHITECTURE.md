@@ -21,11 +21,12 @@ requestFinancing: proceeds iff verdict == ALLOW, else reverts
 |---|---|---|
 | Source fact emission | Sepolia registry contract | On-chain; event must come from the registered contract address |
 | Attestation of source state | Attestcoin attestor set | Decentralized; threshold consensus, not a single oracle |
-| Proof fetching / demo orchestration | `lib/credlock/attest.ts`, `scripts/credlock/demo.ts`, API routes | Untrusted coordination: can withhold proofs, cannot forge a verdict |
+| Proof building | `lib/credlock/attest.ts` via `/api/gate/proof` (public RPC + public builder) | Untrusted coordination: can withhold proofs, cannot forge a verdict — a bad proof reverts on-chain |
 | Proof verification | BlockProver precompile 0xFD2, called by the gate | Cryptographic; synchronous in the same tx |
 | Verdict storage | `CredLockGate.verdicts` | On-chain; writable only via verified `execute` |
 | Financing enforcement | `CredLockGate.requestFinancing` | On-chain hard gate: BLOCK/NONE/double-spend all revert |
-| Display | `/gate` UI, `/api/gate/*` (read-only chain reads + evidence files) | Untrusted display; the UI is never the security boundary |
+| Display + reads | `/gate` UI, `/api/gate/asset` (live event/state reads only) | Untrusted display; the UI is never the security boundary |
+| Writes | visitor's wallet via wagmi (register, pledge, execute, finance) | No server key exists; chains verify signatures |
 
 ## Replay and spoofing
 

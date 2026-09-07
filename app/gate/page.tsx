@@ -1,48 +1,106 @@
 'use client'
 
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import {
+  useAccount,
+  useChainId,
+  useSwitchChain,
+  useWriteContract,
+  useWaitForTransactionReceipt,
+} from 'wagmi'
+import { type Abi } from 'viem'
+import { creditcoinTestnet, sepolia } from '@/lib/credlock/chains'
 
-interface Step {
+const REGISTRY_ABI: Abi = [
+  {
+    name: 'registerAsset',
+    type: 'function',
+    stateMutability: 'nonpayable',
+    inputs: [{ name: 'assetId', type: 'bytes32' }],
+    outputs: [],
+  },
+  {
+    name: 'pledgeAsset',
+    type: 'function',
+    stateMutability: 'nonpayable',
+    inputs: [{ name: 'assetId', type: 'bytes32' }],
+    outputs: [],
+  },
+]
+
+const GATE_ABI: Abi = [
+  {
+    name: 'execute',
+    type: 'function',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'action', type: 'uint8' },
+      { name: 'chainKey', type: 'uint64' },
+      { name: 'blockHeight', type: 'uint64' },
+      { name: 'encodedTransaction', type: 'bytes' },
+      { name: 'merkleRoot', type: 'bytes32' },
+      {
+        name: 'siblings',
+        type: 'tuple[]',
+        components: [
+          { name: 'hash', type: 'bytes32' },
+          { name: 'isLeft', type: 'bool' },
+        ],
+      },
+      { name: 'lowerEndpointDigest', type: 'bytes32' },
+      { name: 'continuityRoots', type: 'bytes32[]' },
+    ],
+    outputs: [{ type: 'bool' }],
+  },
+  {
+    name: 'requestFinancing',
+    type: 'function',
+    stateMutability: 'nonpayable',
+    inputs: [{ name: 'assetId', type: 'bytes32' }],
+    outputs: [{ type: 'bool' }],
+  },
+]
+
+const CC_TX = 'https://creditcoin-testnet.blockscout.com/tx/'
+const SEPOLIA_TX = 'https://sepolia.etherscan.io/tx/'
+
+interface AssetStep {
   step: string
   chain: string
   txHash?: string
   detail: string
+  explorer?: string
 }
 
-interface Evidence {
-  assetName: string
-  assetId: string
-  sourceChain: string
-  sourceChainKey: number
-  gateAddress: string
-  registryAddress: string
-  attempt1: { fact: string; verdict: string; financing: string }
-  attempt2: { fact: string; verdict: string; financing: string }
-  steps: Step[]
-  ranAt: string
-}
-
-interface LiveVerdict {
+interface AssetState {
   asset: string
+  owner: string
+  pledged: boolean
   verdict: string
   reason: string
   financed: boolean
   verificationStatus: string
   gateAddress: string
   registryAddress: string
-  explorer: string
+  steps: AssetStep[]
 }
 
-function txLink(chain: string, hash: string): string {
-  if (chain.includes('Sepolia') || chain.includes('Attestcoin')) {
-    return `https://sepolia.etherscan.io/tx/${hash}`
-  }
-  return `https://creditcoin-testnet.blockscout.com/tx/${hash}`
+interface Proof {
+  chainKey: number
+  headerNumber: number
+  txHash: string
+  txBytes: `0x${string}`
+  merkleRoot: `0x${string}`
+  siblings: Array<{ hash: `0x${string}`; isLeft: boolean }>
+  lowerEndpointDigest: `0x${string}`
+  continuityRoots: Array<`0x${string}`>
+  cached: boolean
+  proofBuilderUrl: string
 }
 
 function Stamp({ value }: { value: string }) {
-  const allow = value === 'ALLOW' || value === 'SUCCESS'
-  const blocked = value === 'BLOCK' || value === 'REVERTED'
+  const allow = value === 'ALLOW' || value === 'SUCCESS' || value === 'CLEAR'
+  const blocked = value === 'BLOCK' || value === 'REVERTED' || value === 'ENCUMBERED'
   const cls = allow
     ? 'border-brand-accent text-brand-accent'
     : blocked
@@ -51,203 +109,400 @@ function Stamp({ value }: { value: string }) {
   return <span className={`verdict-stamp ${cls}`}>{value}</span>
 }
 
-function StepRow({ index, s }: { index: number; s: Step }) {
+/**
+ * One wallet-signed transaction on a specific chain. Handles chain switching,
+ * receipt tracking, and revert display. Nothing here touches a server key.
+ */
+function TxAction({
+  label,
+  chainId,
+  chainName,
+  address,
+  abi,
+  functionName,
+  args,
+  disabled,
+  explorerBase,
+  onConfirmed,
+  danger,
+}: {
+  label: string
+  chainId: number
+  chainName: string
+  address: string
+  abi: Abi
+  functionName: string
+  args: unknown[]
+  disabled?: boolean
+  explorerBase: string
+  onConfirmed: () => void
+  danger?: boolean
+}) {
+  const curChain = useChainId()
+  const { switchChain, isPending: switching } = useSwitchChain()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const write = useWriteContract() as any
+  const receipt = useWaitForTransactionReceipt({ hash: write.data })
+  const [seen, setSeen] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (receipt.data && receipt.data.transactionHash !== seen) {
+      setSeen(receipt.data.transactionHash)
+      onConfirmed()
+    }
+  }, [receipt.data, seen, onConfirmed])
+
+  const wrongChain = curChain !== chainId
+  const reverted = receipt.data && receipt.data.status === 'reverted'
+
   return (
-    <div className="ledger-row grid gap-1 md:grid-cols-[3rem_minmax(0,1fr)] md:gap-4">
-      <span className="font-mono text-sm text-brand-muted">{String(index + 1).padStart(2, '0')}</span>
-      <div>
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <p className="font-semibold">{s.step}</p>
-          <p className="font-mono text-xs text-brand-muted">{s.chain}</p>
-        </div>
-        <p className="mt-1 text-sm text-brand-muted">{s.detail}</p>
-        {s.txHash && (
+    <div className="mt-3">
+      {wrongChain ? (
+        <button
+          onClick={() => switchChain({ chainId })}
+          disabled={switching}
+          className="rounded-md border border-brand-primary px-5 py-2 text-sm font-semibold"
+        >
+          {switching ? 'Switching…' : `Switch to ${chainName}`}
+        </button>
+      ) : (
+        <button
+          onClick={() =>
+            write.writeContract({ address: address as `0x${string}`, abi, functionName, args })
+          }
+          disabled={disabled || write.isPending || receipt.isLoading}
+          className={`rounded-md px-5 py-2 text-sm font-semibold text-white disabled:opacity-50 ${
+            danger ? 'bg-brand-alarm' : 'bg-brand-accent'
+          }`}
+        >
+          {write.isPending ? 'Confirm in wallet…' : receipt.isLoading ? 'Confirming…' : label}
+        </button>
+      )}
+      {write.data && (
+        <p className="mt-2 font-mono text-xs break-all">
           <a
-            href={txLink(s.chain, s.txHash)}
+            className="text-brand-accent underline"
+            href={explorerBase + write.data}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-1 block font-mono text-xs text-brand-accent underline break-all"
           >
-            {s.txHash}
-          </a>
-        )}
-      </div>
+            {write.data}
+          </a>{' '}
+          {receipt.isLoading && <span className="text-brand-muted">confirming…</span>}
+          {reverted && <span className="font-bold text-brand-alarm">REVERTED on-chain</span>}
+          {receipt.data && !reverted && <span className="font-bold text-brand-accent">confirmed</span>}
+        </p>
+      )}
+      {write.error && (
+        <p className="mt-2 text-sm text-brand-alarm">{write.error.message.slice(0, 240)}</p>
+      )}
     </div>
   )
 }
 
-function Attempt({
-  title,
-  summary,
-  steps,
-  tone,
+/** Build a public proof for one Sepolia tx, show it, then submit via wallet. */
+function ProofSubmit({
+  txHash,
+  action,
+  actionLabel,
+  gateAddress,
+  onConfirmed,
 }: {
-  title: string
-  summary: { fact: string; verdict: string; financing: string }
-  steps: Step[]
-  tone: 'allow' | 'block'
+  txHash: string
+  action: number
+  actionLabel: string
+  gateAddress: string
+  onConfirmed: () => void
 }) {
-  const border = tone === 'allow' ? 'border-brand-accent' : 'border-brand-alarm'
+  const [proof, setProof] = useState<Proof | null>(null)
+  const [building, setBuilding] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function build() {
+    setBuilding(true)
+    setError(null)
+    try {
+      const res = await fetch(`/api/gate/proof?txHash=${txHash}`)
+      const body = await res.json()
+      if (!res.ok) throw new Error(body.error ?? 'proof build failed')
+      setProof(body as Proof)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'proof build failed')
+    } finally {
+      setBuilding(false)
+    }
+  }
+
   return (
-    <section className={`rounded-lg border-2 ${border} bg-white p-6`}>
-      <h2 className="font-display text-2xl font-bold">{title}</h2>
-      <div className="mt-4 flex flex-wrap gap-2">
-        <Stamp value={summary.fact} />
-        <Stamp value={summary.verdict} />
-        <Stamp value={summary.financing} />
-      </div>
-      <div className="mt-4">
-        {steps.map((s, i) => (
-          <StepRow key={s.step} index={i} s={s} />
-        ))}
-      </div>
-    </section>
+    <div className="mt-2 rounded-md border border-brand-hairline p-3">
+      {!proof ? (
+        <>
+          <button
+            onClick={build}
+            disabled={building}
+            className="rounded-md border border-brand-primary px-4 py-1.5 text-sm font-semibold disabled:opacity-50"
+          >
+            {building ? 'Waiting for attestation + proving… (minutes)' : `Prove ${actionLabel} on Creditcoin`}
+          </button>
+          {error && <p className="mt-2 text-sm text-brand-alarm">{error}</p>}
+        </>
+      ) : (
+        <>
+          <p className="font-mono text-xs text-brand-muted">
+            block {proof.headerNumber} · chainKey {proof.chainKey} · cached={String(proof.cached)} ·
+            siblings {proof.siblings.length} · roots {proof.continuityRoots.length}
+          </p>
+          <TxAction
+            label={`Submit ${actionLabel} proof (signed by you)`}
+            chainId={creditcoinTestnet.id}
+            chainName="Creditcoin Testnet"
+            address={gateAddress}
+            abi={GATE_ABI}
+            functionName="execute"
+            args={[
+              action,
+              proof.chainKey,
+              proof.headerNumber,
+              proof.txBytes,
+              proof.merkleRoot,
+              proof.siblings,
+              proof.lowerEndpointDigest,
+              proof.continuityRoots,
+            ]}
+            explorerBase={CC_TX}
+            onConfirmed={() => {
+              setProof(null)
+              onConfirmed()
+            }}
+          />
+        </>
+      )}
+    </div>
   )
 }
 
-const ATTEMPT1_STEPS = ['register', 'attest-clear', 'execute-clear', 'financing-attempt-1']
-const ATTEMPT2_STEPS = ['pledge', 'attest-encumbered', 'execute-encumbered', 'financing-attempt-2']
-
 export default function GatePage() {
+  const { isConnected } = useAccount()
   const [assetId, setAssetId] = useState('')
-  const [evidence, setEvidence] = useState<Evidence | null>(null)
-  const [live, setLive] = useState<LiveVerdict | null>(null)
+  const [state, setState] = useState<AssetState | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [refreshKey, setRefreshKey] = useState(0)
 
-  async function load() {
+  const valid = /^0x[0-9a-fA-F]{64}$/.test(assetId.trim())
+
+  const load = useCallback(async () => {
     const id = assetId.trim()
     if (!/^0x[0-9a-fA-F]{64}$/.test(id)) {
-      setError('Paste a 0x asset id exactly as printed by the demo script.')
+      setError('Enter a 0x bytes32 asset id, or generate a fresh one.')
       return
     }
     setLoading(true)
     setError(null)
     try {
-      const [evRes, liveRes] = await Promise.all([
-        fetch(`/api/gate/evidence?assetId=${id}`),
-        fetch(`/api/gate/verdict?assetId=${id}`),
-      ])
-      if (!evRes.ok) {
-        const body = await evRes.json().catch(() => ({}))
-        throw new Error((body as { error?: string }).error ?? 'No recorded demo for this asset yet.')
-      }
-      setEvidence((await evRes.json()) as Evidence)
-      if (liveRes.ok) setLive((await liveRes.json()) as LiveVerdict)
-      else setLive(null)
+      const res = await fetch(`/api/gate/asset?assetId=${id}`)
+      const body = await res.json()
+      if (!res.ok) throw new Error(body.error ?? 'load failed')
+      setState(body as AssetState)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Load failed.')
-      setEvidence(null)
-      setLive(null)
+      setError(e instanceof Error ? e.message : 'load failed')
+      setState(null)
     } finally {
       setLoading(false)
     }
+  }, [assetId, refreshKey])
+
+  function randomAsset() {
+    const bytes = crypto.getRandomValues(new Uint8Array(32))
+    setAssetId('0x' + [...bytes].map((b) => b.toString(16).padStart(2, '0')).join(''))
+    setState(null)
   }
+
+  const refresh = useCallback(() => setRefreshKey((k) => k + 1), [])
+  useEffect(() => {
+    if (valid) load()
+  }, [refreshKey])
+
+  const sepoliaTxs = (state?.steps ?? []).filter(
+    (s) => s.chain.includes('Sepolia') && s.txHash && (s.step === 'registered' || s.step === 'pledged'),
+  )
 
   return (
     <div className="container-custom py-12">
-      <p className="font-mono text-sm text-brand-muted">The gate, inspected</p>
-      <h1 className="mt-3 max-w-3xl font-display text-4xl font-bold leading-tight md:text-5xl">
-        Same asset. Two attempts. One refusal.
+      <p className="font-mono text-sm text-brand-muted">Creditcoin · Attestcoin · Sepolia</p>
+      <h1 className="mt-3 max-w-4xl font-display text-4xl font-bold leading-tight md:text-5xl">
+        Bring any asset. The chain decides.
       </h1>
-      <p className="mt-4 max-w-2xl text-brand-muted">
-        Paste the asset id from a demo run. You get the full chain — the Sepolia
-        fact, the Attestcoin proof, the on-chain verification, the verdict, and
-        the financing outcome — plus a live read of the gate itself.
+      <p className="mt-4 max-w-3xl text-brand-muted">
+        Connect your wallet, register your asset on Sepolia, prove the fact on Creditcoin,
+        and attempt financing — every write signed by you. Nothing here is preloaded;
+        every outcome below is read live from chain state.
       </p>
 
-      <div className="mt-8 flex flex-col gap-2 sm:flex-row">
+      {!isConnected && (
+        <p className="mt-6 rounded-md border border-brand-hairline bg-white p-4 text-sm font-semibold">
+          Connect your wallet (top right) — MetaMask on Sepolia and Creditcoin testnet.
+        </p>
+      )}
+
+      <div className="mt-6 flex flex-col gap-2 sm:flex-row">
         <input
           value={assetId}
           onChange={(e) => setAssetId(e.target.value)}
-          placeholder="0x asset id"
+          placeholder="0x asset id — yours, any of them"
           spellCheck={false}
           className="flex-1 rounded-md border border-brand-hairline bg-white px-3 py-2 font-mono text-sm"
         />
         <button
-          onClick={load}
-          disabled={loading}
-          className="rounded-md bg-brand-primary px-6 py-2 font-semibold text-white disabled:opacity-50"
+          onClick={randomAsset}
+          className="rounded-md border border-brand-primary px-5 py-2 text-sm font-semibold"
         >
-          {loading ? 'Reading…' : 'Open the record'}
+          New asset
+        </button>
+        <button
+          onClick={load}
+          disabled={loading || !valid}
+          className="rounded-md bg-brand-primary px-6 py-2 text-sm font-semibold text-white disabled:opacity-50"
+        >
+          {loading ? 'Reading chain…' : 'Read chain state'}
         </button>
       </div>
       {error && <p className="mt-3 text-sm text-brand-alarm">{error}</p>}
 
-      {!evidence && !error && (
-        <div className="mt-10 rounded-lg border border-dashed border-brand-hairline p-8 text-brand-muted">
-          <p className="font-display text-xl font-bold text-brand-primary">No record open</p>
-          <p className="mt-2 max-w-xl text-sm">
-            Run the demo once with real deployments and the two attempts appear here:
-            the clean financing that succeeds, and the pledged one the contract
-            refuses. Until then, this page is an empty ledger waiting for entries.
-          </p>
-          <p className="mt-3 font-mono text-xs">npm run demo [asset-name]</p>
-        </div>
-      )}
-
-      {live && (
-        <section className="mt-10 rounded-lg bg-brand-primary p-6 text-white md:p-8">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <p className="font-mono text-xs opacity-70">Live on-chain verdict · read just now</p>
-              <p className="mt-1 font-mono text-sm break-all">{live.asset}</p>
+      {state && (
+        <>
+          <section className="mt-8 rounded-lg bg-brand-primary p-6 text-white md:p-8">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <p className="font-mono text-xs opacity-70">Live verdict · {state.verificationStatus}</p>
+                <p className="mt-1 font-mono text-sm break-all">{state.asset}</p>
+              </div>
+              <Stamp value={state.verdict} />
             </div>
-            <Stamp value={live.verdict} />
+            <dl className="mt-6 grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
+              <div><dt className="opacity-70">Reason</dt><dd className="mt-1 font-mono">{state.reason}</dd></div>
+              <div><dt className="opacity-70">Financed</dt><dd className="mt-1 font-mono">{String(state.financed)}</dd></div>
+              <div><dt className="opacity-70">Pledged (Sepolia)</dt><dd className="mt-1 font-mono">{String(state.pledged)}</dd></div>
+              <div><dt className="opacity-70">Owner</dt><dd className="mt-1 font-mono text-xs break-all">{state.owner}</dd></div>
+            </dl>
+          </section>
+
+          {state.verdict === 'NONE' && state.steps.length === 0 && (
+            <p className="mt-6 rounded-md border border-dashed border-brand-hairline p-6 text-brand-muted">
+              No on-chain record for this asset — that is the honest answer for unknown ids.
+              Register it below to create one.
+            </p>
+          )}
+
+          <div className="mt-8 grid gap-6 lg:grid-cols-2">
+            <section className="rounded-lg border border-brand-hairline bg-white p-6">
+              <h2 className="font-display text-2xl font-bold">Source chain — your writes</h2>
+              <p className="mt-1 text-sm text-brand-muted">Signed by your wallet on Sepolia.</p>
+              <TxAction
+                label="Register asset (CLEAR fact)"
+                chainId={sepolia.id}
+                chainName="Sepolia"
+                address={state.registryAddress}
+                abi={REGISTRY_ABI}
+                functionName="registerAsset"
+                args={[state.asset]}
+                disabled={!isConnected || !valid}
+                explorerBase={SEPOLIA_TX}
+                onConfirmed={refresh}
+              />
+              <TxAction
+                label="Pledge asset (ENCUMBERED fact)"
+                chainId={sepolia.id}
+                chainName="Sepolia"
+                address={state.registryAddress}
+                abi={REGISTRY_ABI}
+                functionName="pledgeAsset"
+                args={[state.asset]}
+                disabled={!isConnected || !valid}
+                explorerBase={SEPOLIA_TX}
+                onConfirmed={refresh}
+                danger
+              />
+            </section>
+
+            <section className="rounded-lg border border-brand-hairline bg-white p-6">
+              <h2 className="font-display text-2xl font-bold">Financing — the hard gate</h2>
+              <p className="mt-1 text-sm text-brand-muted">
+                Signed by your wallet on Creditcoin. Reverts unless verdict is ALLOW.
+              </p>
+              <TxAction
+                label="Attempt financing now"
+                chainId={creditcoinTestnet.id}
+                chainName="Creditcoin Testnet"
+                address={state.gateAddress}
+                abi={GATE_ABI}
+                functionName="requestFinancing"
+                args={[state.asset]}
+                disabled={!isConnected || !valid}
+                explorerBase={CC_TX}
+                onConfirmed={refresh}
+                danger
+              />
+            </section>
           </div>
-          <dl className="mt-6 grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
-            <div><dt className="opacity-70">Reason</dt><dd className="mt-1 font-mono">{live.reason}</dd></div>
-            <div><dt className="opacity-70">Financed</dt><dd className="mt-1 font-mono">{String(live.financed)}</dd></div>
-            <div><dt className="opacity-70">Verification</dt><dd className="mt-1 font-mono">{live.verificationStatus}</dd></div>
-            <div>
-              <dt className="opacity-70">Gate contract</dt>
-              <dd className="mt-1">
-                <a className="font-mono text-xs underline break-all" href={live.explorer} target="_blank" rel="noopener noreferrer">
-                  {live.gateAddress}
-                </a>
-              </dd>
-            </div>
-          </dl>
-        </section>
-      )}
 
-      {evidence && (
-        <div className="mt-10 grid gap-6 lg:grid-cols-2">
-          <Attempt
-            title="Attempt 1 — clean"
-            summary={evidence.attempt1}
-            steps={evidence.steps.filter((s) => ATTEMPT1_STEPS.includes(s.step))}
-            tone="allow"
-          />
-          <Attempt
-            title="Attempt 2 — pledged"
-            summary={evidence.attempt2}
-            steps={evidence.steps.filter((s) => ATTEMPT2_STEPS.includes(s.step))}
-            tone="block"
-          />
-        </div>
-      )}
-
-      {evidence && (
-        <section className="mt-10">
-          <h2 className="font-display text-2xl font-bold">Check it yourself</h2>
-          <div className="mt-4">
-            {[
-              ['Open each transaction in its explorer and confirm the events it claims.', 'AssetRegistered and AssetPledged on Sepolia; VerdictRecorded and FinancingExecuted on Creditcoin.'],
-              ['Re-derive the Attestcoin proof from the public builder.', 'GET prover.cc3-testnet.creditcoin.network/api/v1/proof-by-tx/1/<sepolia-tx> — no key, no permission.'],
-              ['Read the gate contract directly.', `Call verdictOf(${evidence.assetId}) at ${evidence.gateAddress} on chain 102031.`],
-              ['Try to finance it yourself.', `Call requestFinancing with the same id. It reverts with AssetEncumbered — this page cannot change that.`],
-            ].map(([title, body]) => (
-              <div key={title} className="ledger-row grid gap-1 md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] md:gap-8">
-                <p className="font-semibold">{title}</p>
-                <p className="font-mono text-sm text-brand-muted break-all">{body}</p>
+          <section className="mt-6 rounded-lg border border-brand-hairline bg-white p-6">
+            <h2 className="font-display text-2xl font-bold">Prove a fact on Creditcoin</h2>
+            <p className="mt-1 max-w-3xl text-sm text-brand-muted">
+              Pick a Sepolia transaction below. The proof is built from public data and shown
+              before you sign; the gate re-verifies it on-chain, so a wrong proof simply reverts.
+            </p>
+            {sepoliaTxs.length === 0 && (
+              <p className="mt-3 text-sm text-brand-muted">No Sepolia transactions for this asset yet.</p>
+            )}
+            {sepoliaTxs.map((s) => (
+              <div key={s.txHash} className="mt-3 border-t border-brand-hairline pt-3">
+                <p className="font-mono text-xs break-all">
+                  <a className="text-brand-accent underline" href={s.explorer} target="_blank" rel="noopener noreferrer">
+                    {s.txHash}
+                  </a>{' '}
+                  <span className="text-brand-muted">({s.detail})</span>
+                </p>
+                <ProofSubmit
+                  txHash={s.txHash!}
+                  action={s.step === 'pledged' ? 1 : 0}
+                  actionLabel={s.step === 'pledged' ? 'ENCUMBERED' : 'CLEAR'}
+                  gateAddress={state.gateAddress}
+                  onConfirmed={refresh}
+                />
               </div>
             ))}
-          </div>
-          <p className="mt-6 font-mono text-xs text-brand-muted">
-            Recorded {evidence.ranAt} · gate {evidence.gateAddress} · registry {evidence.registryAddress}
-          </p>
-        </section>
+          </section>
+
+          <section className="mt-6">
+            <h2 className="font-display text-2xl font-bold">Chain history</h2>
+            {state.steps.length === 0 && (
+              <p className="mt-2 text-sm text-brand-muted">Empty — no events on either chain.</p>
+            )}
+            {state.steps.map((s, i) => (
+              <div key={`${s.txHash}-${i}`} className="ledger-row grid gap-1 md:grid-cols-[3rem_minmax(0,1fr)] md:gap-4">
+                <span className="font-mono text-sm text-brand-muted">{String(i + 1).padStart(2, '0')}</span>
+                <div>
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <p className="font-semibold">{s.step}</p>
+                    <p className="font-mono text-xs text-brand-muted">{s.chain}</p>
+                  </div>
+                  <p className="mt-1 text-sm text-brand-muted">{s.detail}</p>
+                  {s.txHash && (
+                    <a
+                      href={s.explorer}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-1 block font-mono text-xs text-brand-accent underline break-all"
+                    >
+                      {s.txHash}
+                    </a>
+                  )}
+                </div>
+              </div>
+            ))}
+          </section>
+        </>
       )}
     </div>
   )
