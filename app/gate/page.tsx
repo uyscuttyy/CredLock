@@ -40,27 +40,73 @@ function txLink(chain: string, hash: string): string {
   return `https://creditcoin-testnet.blockscout.com/tx/${hash}`
 }
 
-function StepRow({ s }: { s: Step }) {
+function Stamp({ value }: { value: string }) {
+  const allow = value === 'ALLOW' || value === 'SUCCESS'
+  const blocked = value === 'BLOCK' || value === 'REVERTED'
+  const cls = allow
+    ? 'border-brand-accent text-brand-accent'
+    : blocked
+      ? 'border-brand-alarm text-brand-alarm'
+      : 'border-brand-muted text-brand-muted'
+  return <span className={`verdict-stamp ${cls}`}>{value}</span>
+}
+
+function StepRow({ index, s }: { index: number; s: Step }) {
   return (
-    <div className="flex flex-col gap-1 rounded-lg border border-gray-200 bg-white p-3">
-      <div className="flex items-center justify-between">
-        <span className="font-mono text-sm font-semibold text-brand-primary">{s.step}</span>
-        <span className="text-xs text-brand-muted">{s.chain}</span>
+    <div className="ledger-row grid gap-1 md:grid-cols-[3rem_minmax(0,1fr)] md:gap-4">
+      <span className="font-mono text-sm text-brand-muted">{String(index + 1).padStart(2, '0')}</span>
+      <div>
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <p className="font-semibold">{s.step}</p>
+          <p className="font-mono text-xs text-brand-muted">{s.chain}</p>
+        </div>
+        <p className="mt-1 text-sm text-brand-muted">{s.detail}</p>
+        {s.txHash && (
+          <a
+            href={txLink(s.chain, s.txHash)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-1 block font-mono text-xs text-brand-accent underline break-all"
+          >
+            {s.txHash}
+          </a>
+        )}
       </div>
-      <p className="text-sm text-gray-700">{s.detail}</p>
-      {s.txHash && (
-        <a
-          href={txLink(s.chain, s.txHash)}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="font-mono text-xs text-brand-accent underline break-all"
-        >
-          {s.txHash}
-        </a>
-      )}
     </div>
   )
 }
+
+function Attempt({
+  title,
+  summary,
+  steps,
+  tone,
+}: {
+  title: string
+  summary: { fact: string; verdict: string; financing: string }
+  steps: Step[]
+  tone: 'allow' | 'block'
+}) {
+  const border = tone === 'allow' ? 'border-brand-accent' : 'border-brand-alarm'
+  return (
+    <section className={`rounded-lg border-2 ${border} bg-white p-6`}>
+      <h2 className="font-display text-2xl font-bold">{title}</h2>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <Stamp value={summary.fact} />
+        <Stamp value={summary.verdict} />
+        <Stamp value={summary.financing} />
+      </div>
+      <div className="mt-4">
+        {steps.map((s, i) => (
+          <StepRow key={s.step} index={i} s={s} />
+        ))}
+      </div>
+    </section>
+  )
+}
+
+const ATTEMPT1_STEPS = ['register', 'attest-clear', 'execute-clear', 'financing-attempt-1']
+const ATTEMPT2_STEPS = ['pledge', 'attest-encumbered', 'execute-encumbered', 'financing-attempt-2']
 
 export default function GatePage() {
   const [assetId, setAssetId] = useState('')
@@ -72,7 +118,7 @@ export default function GatePage() {
   async function load() {
     const id = assetId.trim()
     if (!/^0x[0-9a-fA-F]{64}$/.test(id)) {
-      setError('Paste a 0x-prefixed bytes32 asset id (as printed by the demo script).')
+      setError('Paste a 0x asset id exactly as printed by the demo script.')
       return
     }
     setLoading(true)
@@ -84,13 +130,13 @@ export default function GatePage() {
       ])
       if (!evRes.ok) {
         const body = await evRes.json().catch(() => ({}))
-        throw new Error((body as { error?: string }).error ?? 'evidence not found')
+        throw new Error((body as { error?: string }).error ?? 'No recorded demo for this asset yet.')
       }
       setEvidence((await evRes.json()) as Evidence)
       if (liveRes.ok) setLive((await liveRes.json()) as LiveVerdict)
       else setLive(null)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'load failed')
+      setError(e instanceof Error ? e.message : 'Load failed.')
       setEvidence(null)
       setLive(null)
     } finally {
@@ -99,77 +145,109 @@ export default function GatePage() {
   }
 
   return (
-    <div className="container-custom py-10">
-      <h1 className="text-3xl font-bold text-brand-primary">CredLock verification gate</h1>
-      <p className="mt-2 max-w-3xl text-brand-muted">
-        Before Creditcoin lends against an RWA, CredLock forces a cryptographic clear/encumbered
-        result from the source chain. Double-pledging becomes a blocked state transition — enforced
-        by the financing contract, not by this UI.
+    <div className="container-custom py-12">
+      <p className="font-mono text-sm text-brand-muted">The gate, inspected</p>
+      <h1 className="mt-3 max-w-3xl font-display text-4xl font-bold leading-tight md:text-5xl">
+        Same asset. Two attempts. One refusal.
+      </h1>
+      <p className="mt-4 max-w-2xl text-brand-muted">
+        Paste the asset id from a demo run. You get the full chain — the Sepolia
+        fact, the Attestcoin proof, the on-chain verification, the verdict, and
+        the financing outcome — plus a live read of the gate itself.
       </p>
 
-      <div className="mt-6 flex flex-col gap-2 sm:flex-row">
+      <div className="mt-8 flex flex-col gap-2 sm:flex-row">
         <input
           value={assetId}
           onChange={(e) => setAssetId(e.target.value)}
-          placeholder="0x asset id from demo-evidence"
-          className="flex-1 rounded-lg border border-gray-300 px-3 py-2 font-mono text-sm"
+          placeholder="0x asset id"
+          spellCheck={false}
+          className="flex-1 rounded-md border border-brand-hairline bg-white px-3 py-2 font-mono text-sm"
         />
         <button
           onClick={load}
           disabled={loading}
-          className="rounded-lg bg-brand-accent px-5 py-2 text-sm font-semibold text-white disabled:opacity-50"
+          className="rounded-md bg-brand-primary px-6 py-2 font-semibold text-white disabled:opacity-50"
         >
-          {loading ? 'Loading…' : 'Inspect proof chain'}
+          {loading ? 'Reading…' : 'Open the record'}
         </button>
       </div>
-      {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+      {error && <p className="mt-3 text-sm text-brand-alarm">{error}</p>}
+
+      {!evidence && !error && (
+        <div className="mt-10 rounded-lg border border-dashed border-brand-hairline p-8 text-brand-muted">
+          <p className="font-display text-xl font-bold text-brand-primary">No record open</p>
+          <p className="mt-2 max-w-xl text-sm">
+            Run the demo once with real deployments and the two attempts appear here:
+            the clean financing that succeeds, and the pledged one the contract
+            refuses. Until then, this page is an empty ledger waiting for entries.
+          </p>
+          <p className="mt-3 font-mono text-xs">npm run demo [asset-name]</p>
+        </div>
+      )}
 
       {live && (
-        <div className="mt-6 rounded-xl border border-gray-200 bg-white p-4">
-          <h2 className="text-lg font-semibold text-brand-primary">Live on-chain verdict</h2>
-          <dl className="mt-2 grid grid-cols-2 gap-2 text-sm sm:grid-cols-3">
-            <div><dt className="text-brand-muted">Verdict</dt><dd className="font-mono font-bold">{live.verdict}</dd></div>
-            <div><dt className="text-brand-muted">Reason</dt><dd className="font-mono">{live.reason}</dd></div>
-            <div><dt className="text-brand-muted">Financed</dt><dd className="font-mono">{String(live.financed)}</dd></div>
-            <div><dt className="text-brand-muted">Verification</dt><dd className="font-mono">{live.verificationStatus}</dd></div>
-            <div className="col-span-2"><dt className="text-brand-muted">Gate</dt><dd><a className="font-mono text-xs text-brand-accent underline break-all" href={live.explorer} target="_blank" rel="noopener noreferrer">{live.gateAddress}</a></dd></div>
+        <section className="mt-10 rounded-lg bg-brand-primary p-6 text-white md:p-8">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <p className="font-mono text-xs opacity-70">Live on-chain verdict · read just now</p>
+              <p className="mt-1 font-mono text-sm break-all">{live.asset}</p>
+            </div>
+            <Stamp value={live.verdict} />
+          </div>
+          <dl className="mt-6 grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
+            <div><dt className="opacity-70">Reason</dt><dd className="mt-1 font-mono">{live.reason}</dd></div>
+            <div><dt className="opacity-70">Financed</dt><dd className="mt-1 font-mono">{String(live.financed)}</dd></div>
+            <div><dt className="opacity-70">Verification</dt><dd className="mt-1 font-mono">{live.verificationStatus}</dd></div>
+            <div>
+              <dt className="opacity-70">Gate contract</dt>
+              <dd className="mt-1">
+                <a className="font-mono text-xs underline break-all" href={live.explorer} target="_blank" rel="noopener noreferrer">
+                  {live.gateAddress}
+                </a>
+              </dd>
+            </div>
           </dl>
+        </section>
+      )}
+
+      {evidence && (
+        <div className="mt-10 grid gap-6 lg:grid-cols-2">
+          <Attempt
+            title="Attempt 1 — clean"
+            summary={evidence.attempt1}
+            steps={evidence.steps.filter((s) => ATTEMPT1_STEPS.includes(s.step))}
+            tone="allow"
+          />
+          <Attempt
+            title="Attempt 2 — pledged"
+            summary={evidence.attempt2}
+            steps={evidence.steps.filter((s) => ATTEMPT2_STEPS.includes(s.step))}
+            tone="block"
+          />
         </div>
       )}
 
       {evidence && (
-        <div className="mt-6 grid gap-6 lg:grid-cols-2">
-          <div className="rounded-xl border-2 border-green-300 bg-green-50 p-4">
-            <h2 className="text-lg font-bold text-green-800">Attempt 1 — {evidence.attempt1.fact} → {evidence.attempt1.verdict} → financing {evidence.attempt1.financing}</h2>
-            <div className="mt-3 flex flex-col gap-2">
-              {evidence.steps.filter((s) => ['register', 'attest-clear', 'execute-clear', 'financing-attempt-1'].includes(s.step)).map((s) => (
-                <StepRow key={s.step} s={s} />
-              ))}
-            </div>
+        <section className="mt-10">
+          <h2 className="font-display text-2xl font-bold">Check it yourself</h2>
+          <div className="mt-4">
+            {[
+              ['Open each transaction in its explorer and confirm the events it claims.', 'AssetRegistered and AssetPledged on Sepolia; VerdictRecorded and FinancingExecuted on Creditcoin.'],
+              ['Re-derive the Attestcoin proof from the public builder.', 'GET prover.cc3-testnet.creditcoin.network/api/v1/proof-by-tx/1/<sepolia-tx> — no key, no permission.'],
+              ['Read the gate contract directly.', `Call verdictOf(${evidence.assetId}) at ${evidence.gateAddress} on chain 102031.`],
+              ['Try to finance it yourself.', `Call requestFinancing with the same id. It reverts with AssetEncumbered — this page cannot change that.`],
+            ].map(([title, body]) => (
+              <div key={title} className="ledger-row grid gap-1 md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] md:gap-8">
+                <p className="font-semibold">{title}</p>
+                <p className="font-mono text-sm text-brand-muted break-all">{body}</p>
+              </div>
+            ))}
           </div>
-          <div className="rounded-xl border-2 border-red-300 bg-red-50 p-4">
-            <h2 className="text-lg font-bold text-red-800">Attempt 2 — {evidence.attempt2.fact} → {evidence.attempt2.verdict} → financing {evidence.attempt2.financing}</h2>
-            <p className="mt-1 text-sm text-red-700">Same asset, after pledging on {evidence.sourceChain}.</p>
-            <div className="mt-3 flex flex-col gap-2">
-              {evidence.steps.filter((s) => ['pledge', 'attest-encumbered', 'execute-encumbered', 'financing-attempt-2'].includes(s.step)).map((s) => (
-                <StepRow key={s.step} s={s} />
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {evidence && (
-        <div className="mt-6 rounded-xl border border-gray-200 bg-white p-4 text-sm text-gray-700">
-          <h2 className="font-semibold text-brand-primary">How to verify this yourself</h2>
-          <ol className="mt-2 list-decimal space-y-1 pl-5">
-            <li>Open each transaction hash above in its explorer and confirm the events (<code>AssetRegistered</code> / <code>AssetPledged</code> on Sepolia; <code>VerdictRecorded</code> / <code>FinancingExecuted</code> on Creditcoin).</li>
-            <li>Re-derive the Attestcoin proof: <code>GET https://prover.cc3-testnet.creditcoin.network/api/v1/proof-by-tx/1/&lt;sepolia-tx&gt;</code>.</li>
-            <li>Read the gate directly: <code>verdictOf({evidence.assetId})</code> at <code>{evidence.gateAddress}</code> on Creditcoin testnet (chain 102031).</li>
-            <li>Try calling <code>requestFinancing({evidence.assetId})</code> yourself — it reverts with <code>AssetEncumbered</code>. No UI or backend can override that.</li>
-          </ol>
-          <p className="mt-2 text-xs text-brand-muted">Recorded {evidence.ranAt} · gate {evidence.gateAddress} · registry {evidence.registryAddress}</p>
-        </div>
+          <p className="mt-6 font-mono text-xs text-brand-muted">
+            Recorded {evidence.ranAt} · gate {evidence.gateAddress} · registry {evidence.registryAddress}
+          </p>
+        </section>
       )}
     </div>
   )

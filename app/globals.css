@@ -6,65 +6,38 @@
   html {
     scroll-behavior: smooth;
   }
-  
+
   body {
-    @apply bg-brand-background text-brand-primary antialiased;
+    @apply bg-brand-background text-brand-primary font-sans antialiased;
+  }
+
+  ::selection {
+    background: #0C6B4A;
+    color: #fff;
+  }
+
+  :focus-visible {
+    outline: 2px solid #0C6B4A;
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
   }
 }
 
 @layer components {
   .container-custom {
-    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+    @apply max-w-ledger mx-auto px-4 sm:px-8 lg:px-16;
   }
-  
-  .gradient-text {
-    @apply bg-gradient-to-r from-brand-accent to-brand-secondary bg-clip-text text-transparent;
-  }
-  
-  .card-shadow {
-    @apply shadow-card hover:shadow-card-hover transition-shadow duration-300;
-  }
-  
-  .glass-effect {
-    @apply bg-white/80 backdrop-blur-lg border border-gray-200/50;
-  }
-}
 
-@layer utilities {
-  .animate-float {
-    animation: float 6s ease-in-out infinite;
+  .ledger-row {
+    @apply border-t border-brand-hairline py-4;
   }
-  
-  .animate-float-delayed {
-    animation: float 6s ease-in-out 3s infinite;
-  }
-  
-  .animate-shimmer {
-    background: linear-gradient(
-      90deg,
-      rgba(255, 255, 255, 0) 0%,
-      rgba(255, 255, 255, 0.6) 50%,
-      rgba(255, 255, 255, 0) 100%
-    );
-    background-size: 1000px 100%;
-    animation: shimmer 2s linear infinite;
-  }
-}
 
-@keyframes float {
-  0%, 100% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-20px);
-  }
-}
-
-@keyframes shimmer {
-  0% {
-    background-position: -1000px 0;
-  }
-  100% {
-    background-position: 1000px 0;
+  .verdict-stamp {
+    @apply inline-block rounded-md border-2 px-5 py-2 font-display font-bold tracking-wide;
   }
 }

@@ -8,63 +8,33 @@ import { ConnectWallet } from '@/components/wallet/ConnectWallet'
 export const Header = () => {
   const pathname = usePathname()
   const { address, isConnected } = useAccount()
-  
+
   const navItems = [
-    { href: '/', label: 'Home' },
+    { href: '/gate', label: 'Gate' },
     { href: '/verify', label: 'Verify' },
-    { href: '/profile', label: 'Profile' },
     { href: '/credentials', label: 'Credentials' },
+    { href: '/profile', label: 'Profile' },
   ]
-  
+
   return (
-    <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-lg border-b border-gray-200/50">
-      <div className="container-custom py-4">
-        <div className="flex items-center justify-between">
-          <Link href="/" className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-brand-primary rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">C</span>
-            </div>
-            <span className="font-bold text-xl">CredLock</span>
-          </Link>
-          
-          <nav className="hidden md:flex items-center space-x-8">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`text-sm font-medium transition-colors ${
-                  pathname === item.href
-                    ? 'text-brand-accent'
-                    : 'text-brand-muted hover:text-brand-primary'
-                }`}
-              >
-                {item.label}
-              </Link>
-            ))}
-          </nav>
-          
-          <div className="flex items-center space-x-4">
-            {isConnected ? (
-              <div className="hidden sm:block">
-                <span className="text-xs text-brand-muted">Connected:</span>
-                <p className="text-sm font-medium">
-                  {address?.slice(0, 6)}...{address?.slice(-4)}
-                </p>
-              </div>
-            ) : null}
-            <ConnectWallet />
-          </div>
-        </div>
-        
-        {/* Mobile navigation */}
-        <nav className="md:hidden mt-4 flex justify-around">
+    <header className="sticky top-0 z-50 border-b border-brand-hairline bg-brand-background/95 backdrop-blur">
+      <div className="container-custom flex items-center justify-between py-3">
+        <Link href="/" className="flex items-center gap-2">
+          <span className="flex h-8 w-8 items-center justify-center rounded bg-brand-accent font-display text-lg font-bold text-white">
+            C
+          </span>
+          <span className="font-display text-xl font-bold">CredLock</span>
+          <span className="hidden text-sm text-brand-muted sm:inline">the double-pledge gate</span>
+        </Link>
+
+        <nav className="hidden items-center gap-7 md:flex">
           {navItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}
-              className={`text-xs font-medium px-3 py-2 rounded-lg transition-colors ${
+              className={`text-sm transition-colors ${
                 pathname === item.href
-                  ? 'bg-brand-primary text-white'
+                  ? 'font-semibold text-brand-primary underline underline-offset-8 decoration-brand-accent decoration-2'
                   : 'text-brand-muted hover:text-brand-primary'
               }`}
             >
@@ -72,7 +42,28 @@ export const Header = () => {
             </Link>
           ))}
         </nav>
+
+        <div className="flex items-center gap-3">
+          {isConnected ? (
+            <span className="hidden font-mono text-xs text-brand-muted sm:block">
+              {address?.slice(0, 6)}…{address?.slice(-4)}
+            </span>
+          ) : null}
+          <ConnectWallet />
+        </div>
       </div>
+
+      <nav className="flex justify-around border-t border-brand-hairline py-2 md:hidden">
+        {navItems.map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={`text-sm ${pathname === item.href ? 'font-semibold text-brand-primary' : 'text-brand-muted'}`}
+          >
+            {item.label}
+          </Link>
+        ))}
+      </nav>
     </header>
   )
 }

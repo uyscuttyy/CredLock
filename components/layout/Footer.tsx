@@ -3,51 +3,43 @@
 import Link from 'next/link'
 
 export const Footer = () => {
-    return (
-        <footer className="bg-white border-t border-gray-200/50">
-            <div className="container-custom py-12">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-                    <div className="col-span-1 md:col-span-2">
-                        <div className="flex items-center space-x-2 mb-4">
-                            <div className="w-8 h-8 bg-brand-primary rounded-lg flex items-center justify-center">
-                                <span className="text-white font-bold text-sm">C</span>
-                            </div>
-                            <span className="font-bold text-xl">CredLock</span>
-                        </div>
-                        <p className="text-brand-muted text-sm leading-relaxed">
-                            Your financial history, verified across chains. CredLock turns your on-chain activity
-                            into verifiable financial credentials you can carry across ecosystems.
-                        </p>
-                    </div>
+  return (
+    <footer className="border-t border-brand-hairline">
+      <div className="container-custom grid grid-cols-1 gap-8 py-10 md:grid-cols-4">
+        <div className="md:col-span-2">
+          <p className="font-display text-lg font-bold">CredLock</p>
+          <p className="mt-2 max-w-md text-sm leading-relaxed text-brand-muted">
+            Before Creditcoin lends against an RWA, CredLock forces a cryptographic
+            clear-or-encumbered result from the source chain. The second financing
+            cannot complete — the contract refuses it.
+          </p>
+        </div>
 
-                    <div>
-                        <h3 className="font-semibold mb-4">Product</h3>
-                        <ul className="space-y-2">
-                            <li><Link href="/verify" className="text-sm text-brand-muted hover:text-brand-primary transition-colors">Verify Wallet</Link></li>
-                            <li><Link href="/profile" className="text-sm text-brand-muted hover:text-brand-primary transition-colors">Your Profile</Link></li>
-                            <li><Link href="/credentials" className="text-sm text-brand-muted hover:text-brand-primary transition-colors">Credentials</Link></li>
-                        </ul>
-                    </div>
+        <div>
+          <p className="mb-3 font-semibold">Product</p>
+          <ul className="space-y-2 text-sm">
+            <li><Link href="/gate" className="text-brand-muted hover:text-brand-primary">The gate</Link></li>
+            <li><Link href="/verify" className="text-brand-muted hover:text-brand-primary">Verify wallet</Link></li>
+            <li><Link href="/credentials" className="text-brand-muted hover:text-brand-primary">Credentials</Link></li>
+          </ul>
+        </div>
 
-                    <div>
-                        <h3 className="font-semibold mb-4">Technology</h3>
-                        <ul className="space-y-2">
-                            <li><a href="https://creditcoin.org" target="_blank" rel="noopener noreferrer" className="text-sm text-brand-muted hover:text-brand-primary transition-colors">Creditcoin</a></li>
-                            <li><a href="https://attestcoin.org" target="_blank" rel="noopener noreferrer" className="text-sm text-brand-muted hover:text-brand-primary transition-colors">Attestcoin</a></li>
-                            <li><a href="https://aave.com" target="_blank" rel="noopener noreferrer" className="text-sm text-brand-muted hover:text-brand-primary transition-colors">Aave Protocol</a></li>
-                        </ul>
-                    </div>
-                </div>
+        <div>
+          <p className="mb-3 font-semibold">Protocol</p>
+          <ul className="space-y-2 text-sm">
+            <li><a href="https://creditcoin.org" target="_blank" rel="noopener noreferrer" className="text-brand-muted hover:text-brand-primary">Creditcoin</a></li>
+            <li><a href="https://attestcoin.org" target="_blank" rel="noopener noreferrer" className="text-brand-muted hover:text-brand-primary">Attestcoin</a></li>
+            <li><a href="https://docs.attestcoin.org" target="_blank" rel="noopener noreferrer" className="text-brand-muted hover:text-brand-primary">Attestcoin docs</a></li>
+          </ul>
+        </div>
+      </div>
 
-                <div className="mt-8 pt-8 border-t border-gray-200/50 flex flex-col md:flex-row justify-between items-center">
-                    <p className="text-xs text-brand-muted">
-                        © 2026 CredLock. Built for Creditcoin BUIDL CTC 2026 Fall Hackathon.
-                    </p>
-                    <p className="text-xs text-brand-muted mt-2 md:mt-0">
-                        Powered by Attestcoin
-                    </p>
-                </div>
-            </div>
-        </footer>
-    )
+      <div className="border-t border-brand-hairline">
+        <div className="container-custom flex flex-col justify-between gap-1 py-4 text-xs text-brand-muted md:flex-row">
+          <p>© 2026 CredLock. Built for the Creditcoin BUIDL CTC hackathon.</p>
+          <p>Enforced on-chain, not in this interface.</p>
+        </div>
+      </div>
+    </footer>
+  )
 }
