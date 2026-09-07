@@ -6,34 +6,52 @@ import { useState } from 'react'
 
 export const ConnectWallet = () => {
   const { address, isConnected } = useAccount()
-  const { connect } = useConnect()
+  const { connectAsync } = useConnect()
   const { disconnect } = useDisconnect()
   const connectors = useConnectors()
   const [error, setError] = useState<string | null>(null)
   const [isConnecting, setIsConnecting] = useState(false)
-  
+
   const handleConnect = async () => {
     setIsConnecting(true)
     setError(null)
-    
+
     try {
-      // Find the injected connector (MetaMask, etc.)
-      const injectedConnector = connectors.find(c => c.type === 'injected')
-      
-      if (injectedConnector) {
-        await connect({ connector: injectedConnector })
-      } else if (connectors.length > 0) {
-        await connect({ connector: connectors[0] })
-      } else {
-        setError('No wallet found. Please install MetaMask or another Web3 wallet.')
+      // 1. wagmi connectors (EIP-6963 announced wallets + injected)
+      const target =
+        connectors.find((c) => c.type === 'injected') ?? connectors[0]
+      if (target) {
+        await connectAsync({ connector: target })
+        return
       }
+      // 2. raw fallback: talk to the injected provider directly so a click
+      // can never die silently when connector discovery comes up empty
+      const eth = (window as unknown as {
+        ethereum?: { request: (args: { method: string }) => Promise<unknown> }
+      }).ethereum
+      if (typeof window !== 'undefined' && eth) {
+        await eth.request({ method: 'eth_requestAccounts' })
+        // wagmi picks up the accounts once the provider responds; if it
+        // doesn't within a beat, say so instead of hanging
+        await new Promise((r) => setTimeout(r, 1500))
+        return
+      }
+      setError(
+        'No wallet detected. Open this page on http://localhost:3010 (MetaMask does not inject on plain IP addresses), then install/enable MetaMask and retry.',
+      )
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to connect wallet')
+      const msg = err instanceof Error ? err.message : 'Failed to connect wallet'
+      // user closing the prompt is not an error worth alarming about
+      if (/rejected|denied|cancelled/i.test(msg)) {
+        setError('Connection request was closed in the wallet. Hit Connect again to retry.')
+      } else {
+        setError(msg)
+      }
     } finally {
       setIsConnecting(false)
     }
   }
-  
+
   if (isConnected) {
     return (
       <div className="flex items-center gap-2">
@@ -46,18 +64,20 @@ export const ConnectWallet = () => {
       </div>
     )
   }
-  
+
   return (
     <div className="relative">
       <Button
         variant="primary"
         size="sm"
-        onClick={handleConnect}
+        onClick={() => {
+          void handleConnect()
+        }}
         isLoading={isConnecting}
       >
         Connect Wallet
       </Button>
-      
+
       {error && (
         <p className="absolute right-0 mt-2 text-xs text-red-600 bg-white p-3 rounded shadow-card w-64">
           {error}
