@@ -38,3 +38,7 @@ next-env.d.ts
 
 # Prisma
 /prisma/migrations/dev.db
+
+# Foundry
+contracts/out/
+contracts/cache/

@@ -131,7 +131,7 @@ export class VerificationService {
           },
           type,
           claims: JSON.parse(JSON.stringify(claims)),
-          sourceChains: [...new Set(relevantActivities.map(a => a.chainName))],
+          sourceChains: JSON.stringify([...new Set(relevantActivities.map(a => a.chainName))]),
           issuedAt: new Date(),
           expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
           status: 'current',
