@@ -1,13 +1,14 @@
 'use client'
 
 import Link from 'next/link'
+import { Logo } from '@/components/layout/Logo'
 
 export const Footer = () => {
   return (
     <footer className="border-t border-brand-hairline">
       <div className="container-custom grid grid-cols-1 gap-8 py-10 md:grid-cols-4">
         <div className="md:col-span-2">
-          <p className="font-display text-lg font-bold">CredLock</p>
+          <div className="mb-4"><Logo compact /></div>
           <p className="mt-2 max-w-md text-sm leading-relaxed text-brand-muted">
             Before Creditcoin lends against an RWA, CredLock forces a cryptographic
             clear-or-encumbered result from the source chain. The second financing

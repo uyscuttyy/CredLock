@@ -30,7 +30,7 @@
 
 @layer components {
   .container-custom {
-    @apply max-w-ledger mx-auto px-4 sm:px-8 lg:px-16;
+    @apply mx-auto max-w-[96rem] px-2 sm:px-4 lg:px-6;
   }
 
   .ledger-row {

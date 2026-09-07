@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAccount } from 'wagmi'
 import { ConnectWallet } from '@/components/wallet/ConnectWallet'
+import { Logo } from '@/components/layout/Logo'
 
 export const Header = () => {
   const pathname = usePathname()
@@ -19,12 +20,8 @@ export const Header = () => {
   return (
     <header className="sticky top-0 z-50 border-b border-brand-hairline bg-brand-background/95 backdrop-blur">
       <div className="container-custom flex items-center justify-between py-3">
-        <Link href="/" className="flex items-center gap-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded bg-brand-accent font-display text-lg font-bold text-white">
-            C
-          </span>
-          <span className="font-display text-xl font-bold">CredLock</span>
-          <span className="hidden text-sm text-brand-muted sm:inline">the double-pledge gate</span>
+        <Link href="/" aria-label="CredLock home">
+          <Logo />
         </Link>
 
         <nav className="hidden items-center gap-7 md:flex">
