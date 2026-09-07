@@ -1,0 +1,68 @@
+{
+  "assetName": "credlock-demo-1788797660139",
+  "assetId": "0x19b3ffd6f725c0d48db62f62c059c28a75090e3679cacb18bfa4342d52452563",
+  "sourceChain": "Ethereum Sepolia",
+  "sourceChainKey": 1,
+  "gateAddress": "0x427d901840125c33f6de53770d0fb884a0e745d9",
+  "registryAddress": "0xae543bb778df66774585b99d9135676bc5d99c2a",
+  "attempt1": {
+    "fact": "CLEAR",
+    "verdict": "ALLOW",
+    "financing": "SUCCESS"
+  },
+  "attempt2": {
+    "fact": "ENCUMBERED",
+    "verdict": "BLOCK",
+    "financing": "REVERTED"
+  },
+  "steps": [
+    {
+      "step": "register",
+      "chain": "Ethereum Sepolia",
+      "txHash": "0xb59313192c23d3346823a8f6c4f3658ffcbbe87061347753429b5ecf425b3bb0",
+      "detail": "AssetRegistered"
+    },
+    {
+      "step": "attest-clear",
+      "chain": "Creditcoin/Attestcoin",
+      "txHash": "0xb59313192c23d3346823a8f6c4f3658ffcbbe87061347753429b5ecf425b3bb0",
+      "detail": "block 11655263, chainKey 1, cached=true"
+    },
+    {
+      "step": "execute-clear",
+      "chain": "Creditcoin",
+      "txHash": "0xf028985e51aeeaa3a745916ca62d4f76147d9c21a9790905fa88671d37ac49e4",
+      "detail": "precompile verified"
+    },
+    {
+      "step": "financing-attempt-1",
+      "chain": "Creditcoin",
+      "txHash": "0x9fd6b51e3c2f09f094a3914e9cfce65447a4daf8adccbf6d3c5c110e02e09c00",
+      "detail": "SUCCESS"
+    },
+    {
+      "step": "pledge",
+      "chain": "Ethereum Sepolia",
+      "txHash": "0x95200b4a107c9d04c4775681e2c3852a0628d18bc1094ee6fc97f646f6b1b5dd",
+      "detail": "AssetPledged"
+    },
+    {
+      "step": "attest-encumbered",
+      "chain": "Creditcoin/Attestcoin",
+      "txHash": "0x95200b4a107c9d04c4775681e2c3852a0628d18bc1094ee6fc97f646f6b1b5dd",
+      "detail": "block 11655310, chainKey 1, cached=true"
+    },
+    {
+      "step": "execute-encumbered",
+      "chain": "Creditcoin",
+      "txHash": "0x44405f1d5202ef5860257a28113f4fc31a8768256ce888131636a0269e700c2e",
+      "detail": "precompile verified"
+    },
+    {
+      "step": "financing-attempt-2",
+      "chain": "Creditcoin",
+      "detail": "REVERTED: execution reverted (unknown custom error) (action=\"estimateGas\", data=\"0x01d7f74f\", reason=null, transaction={ \"data\": \"0x6feb00cd19b3ffd6f725c0d48db62f62c059c28a75090e3679cacb18bfa4342d52452563\", \"fr"
+    }
+  ],
+  "ranAt": "2026-09-07T16:31:47.471Z"
+}
