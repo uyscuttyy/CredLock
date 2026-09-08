@@ -11,38 +11,26 @@ export const ConnectWallet = () => {
   const connectors = useConnectors()
   const [error, setError] = useState<string | null>(null)
   const [isConnecting, setIsConnecting] = useState(false)
+  const [picking, setPicking] = useState(false)
 
-  const handleConnect = async () => {
+  const connectWith = async (connectorId?: string) => {
     setIsConnecting(true)
     setError(null)
-
     try {
-      // 1. wagmi connectors (EIP-6963 announced wallets + injected)
-      const target =
-        connectors.find((c) => c.type === 'injected') ?? connectors[0]
-      if (target) {
-        await connectAsync({ connector: target })
+      const target = connectorId
+        ? connectors.find((c) => c.id === connectorId)
+        : (connectors.find((c) => /metamask/i.test(c.name)) ?? connectors[0])
+      if (!target) {
+        setError(
+          'No wallet announced itself. Enable MetaMask for this site (click its extension icon), then retry.',
+        )
         return
       }
-      // 2. raw fallback: talk to the injected provider directly so a click
-      // can never die silently when connector discovery comes up empty
-      const eth = (window as unknown as {
-        ethereum?: { request: (args: { method: string }) => Promise<unknown> }
-      }).ethereum
-      if (typeof window !== 'undefined' && eth) {
-        await eth.request({ method: 'eth_requestAccounts' })
-        // wagmi picks up the accounts once the provider responds; if it
-        // doesn't within a beat, say so instead of hanging
-        await new Promise((r) => setTimeout(r, 1500))
-        return
-      }
-      setError(
-        'No wallet detected. Open this page on http://localhost:3010 (MetaMask does not inject on plain IP addresses), then install/enable MetaMask and retry.',
-      )
+      await connectAsync({ connector: target })
+      setPicking(false)
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to connect wallet'
-      // user closing the prompt is not an error worth alarming about
-      if (/rejected|denied|cancelled/i.test(msg)) {
+      if (/rejected|denied|cancelled|closed/i.test(msg)) {
         setError('Connection request was closed in the wallet. Hit Connect again to retry.')
       } else {
         setError(msg)
@@ -67,16 +55,50 @@ export const ConnectWallet = () => {
 
   return (
     <div className="relative">
-      <Button
-        variant="primary"
-        size="sm"
-        onClick={() => {
-          void handleConnect()
-        }}
-        isLoading={isConnecting}
-      >
-        Connect Wallet
-      </Button>
+      {!picking ? (
+        <Button
+          variant="primary"
+          size="sm"
+          onClick={() => {
+            // several providers detected is the norm (MetaMask + Phantom + …):
+            // prefer MetaMask silently, offer the list when it is ambiguous
+            const mm = connectors.filter((c) => /metamask/i.test(c.name))
+            if (connectors.length > 1 && mm.length !== 1) {
+              setPicking(true)
+            } else {
+              void connectWith()
+            }
+          }}
+          isLoading={isConnecting}
+        >
+          Connect Wallet
+        </Button>
+      ) : (
+        <div className="absolute right-0 z-50 w-64 rounded bg-white p-2 shadow-card">
+          <p className="px-2 py-1 text-xs text-brand-muted">Pick a wallet</p>
+          {connectors.map((c) => (
+            <button
+              key={c.id}
+              onClick={() => void connectWith(c.id)}
+              disabled={isConnecting}
+              className="block w-full rounded px-2 py-2 text-left text-sm hover:bg-brand-background disabled:opacity-50"
+            >
+              {c.name}
+            </button>
+          ))}
+          {connectors.length === 0 && (
+            <p className="px-2 py-1 text-xs text-brand-muted">
+              None announced. Enable MetaMask for this site and reopen this menu.
+            </p>
+          )}
+          <button
+            onClick={() => setPicking(false)}
+            className="mt-1 block w-full rounded px-2 py-1 text-left text-xs text-brand-muted hover:bg-brand-background"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
 
       {error && (
         <p className="absolute right-0 mt-2 text-xs text-red-600 bg-white p-3 rounded shadow-card w-64">
