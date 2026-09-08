@@ -8,7 +8,7 @@ import {
   useWriteContract,
   useWaitForTransactionReceipt,
 } from 'wagmi'
-import { type Abi } from 'viem'
+import { type Abi, keccak256, stringToHex } from 'viem'
 import { creditcoinTestnet, sepolia } from '@/lib/credlock/chains'
 
 const REGISTRY_ABI: Abi = [
@@ -283,16 +283,21 @@ function ProofSubmit({
 
 export default function GatePage() {
   const { isConnected } = useAccount()
-  const [assetId, setAssetId] = useState('')
+  const [input, setInput] = useState('')
   const [state, setState] = useState<AssetState | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
 
-  const valid = /^0x[0-9a-fA-F]{64}$/.test(assetId.trim())
+  // An asset id is either pasted 0x-hex or derived from any name/word by
+  // hashing — the same name always yields the same id on every machine.
+  const trimmed = input.trim()
+  const isHex = /^0x[0-9a-fA-F]{64}$/.test(trimmed)
+  const assetId = trimmed === '' ? '' : isHex ? trimmed : keccak256(stringToHex(trimmed))
+  const valid = assetId !== ''
 
   const load = useCallback(async () => {
-    const id = assetId.trim()
+    const id = assetId
     if (!/^0x[0-9a-fA-F]{64}$/.test(id)) {
       setError('Enter a 0x bytes32 asset id, or generate a fresh one.')
       return
@@ -314,7 +319,7 @@ export default function GatePage() {
 
   function randomAsset() {
     const bytes = crypto.getRandomValues(new Uint8Array(32))
-    setAssetId('0x' + [...bytes].map((b) => b.toString(16).padStart(2, '0')).join(''))
+    setInput('0x' + [...bytes].map((b) => b.toString(16).padStart(2, '0')).join(''))
     setState(null)
   }
 
@@ -347,9 +352,9 @@ export default function GatePage() {
 
       <div className="mt-6 flex flex-col gap-2 sm:flex-row">
         <input
-          value={assetId}
-          onChange={(e) => setAssetId(e.target.value)}
-          placeholder="0x asset id — yours, any of them"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Asset name (e.g. uyscutty) or 0x id"
           spellCheck={false}
           className="flex-1 rounded-md border border-brand-hairline bg-white px-3 py-2 font-mono text-sm"
         />
@@ -367,6 +372,11 @@ export default function GatePage() {
           {loading ? 'Reading chain…' : 'Read chain state'}
         </button>
       </div>
+      {trimmed !== '' && (
+        <p className="mt-2 font-mono text-xs text-brand-muted break-all">
+          {isHex ? 'Using pasted id' : `“${trimmed}” hashes to`} <span className="text-brand-primary">{assetId}</span>
+        </p>
+      )}
       {error && <p className="mt-3 text-sm text-brand-alarm">{error}</p>}
 
       {state && (
