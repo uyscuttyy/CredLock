@@ -139,6 +139,8 @@ function TxAction({
   danger?: boolean
 }) {
   const curChain = useChainId()
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
   const { switchChain, isPending: switching } = useSwitchChain()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const write = useWriteContract() as any
@@ -157,7 +159,11 @@ function TxAction({
 
   return (
     <div className="mt-3">
-      {wrongChain ? (
+      {!mounted ? (
+        <button disabled className="rounded-md border border-brand-hairline px-5 py-2 text-sm text-brand-muted">
+          {label}
+        </button>
+      ) : wrongChain ? (
         <button
           onClick={() => switchChain({ chainId })}
           disabled={switching}
@@ -283,6 +289,8 @@ function ProofSubmit({
 
 export default function GatePage() {
   const { isConnected } = useAccount()
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
   const [input, setInput] = useState('')
   const [state, setState] = useState<AssetState | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -344,7 +352,7 @@ export default function GatePage() {
         every outcome below is read live from chain state.
       </p>
 
-      {!isConnected && (
+      {mounted && !isConnected && (
         <p className="mt-6 rounded-md border border-brand-hairline bg-white p-4 text-sm font-semibold">
           Connect your wallet (top right) — MetaMask on Sepolia and Creditcoin testnet.
         </p>

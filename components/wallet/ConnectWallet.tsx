@@ -2,10 +2,12 @@
 
 import { useAccount, useConnect, useDisconnect, useConnectors } from 'wagmi'
 import { Button } from '@/components/ui/Button'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 export const ConnectWallet = () => {
   const { address, isConnected } = useAccount()
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
   const { connectAsync } = useConnect()
   const { disconnect } = useDisconnect()
   const connectors = useConnectors()
@@ -40,7 +42,7 @@ export const ConnectWallet = () => {
     }
   }
 
-  if (isConnected) {
+  if (mounted && isConnected) {
     return (
       <div className="flex items-center gap-2">
         <span className="text-xs text-brand-muted hidden sm:block">

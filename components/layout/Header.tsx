@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAccount } from 'wagmi'
@@ -9,6 +10,8 @@ import { Logo } from '@/components/layout/Logo'
 export const Header = () => {
   const pathname = usePathname()
   const { address, isConnected } = useAccount()
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
 
   const navItems = [
     { href: '/gate', label: 'Gate' },
@@ -41,7 +44,7 @@ export const Header = () => {
         </nav>
 
         <div className="flex items-center gap-3">
-          {isConnected ? (
+          {mounted && isConnected ? (
             <span className="hidden font-mono text-xs text-brand-muted sm:block">
               {address?.slice(0, 6)}…{address?.slice(-4)}
             </span>
