@@ -44,6 +44,9 @@ function VerifyInner() {
   const sepoliaTxs = (state?.steps ?? []).filter(
     (s) => s.chain.includes('Sepolia') && s.txHash && (s.step === 'registered' || s.step === 'pledged'),
   )
+  const registered =
+    sepoliaTxs.some((s) => s.step === 'registered') ||
+    (state !== null && state.owner !== '0x0000000000000000000000000000000000000000')
 
   return (
     <div>
@@ -77,15 +80,6 @@ function VerifyInner() {
             spellCheck={false}
             className="field-dark mt-4 w-full"
           />
-          {input.trim() !== '' && (
-            <p className="mt-2 font-mono text-xs text-ash break-all">
-              {assetId !== '' && assetId !== input.trim() ? (
-                <>“{input.trim()}” hashes to <span className="text-bullion-pale">{assetId}</span></>
-              ) : (
-                <>Using pasted id <span className="text-bullion-pale">{assetId}</span></>
-              )}
-            </p>
-          )}
           {loading && <p className="mt-3 text-sm text-ash">Reading chain…</p>}
           {error && <p className="mt-3 text-sm text-block">{error}</p>}
 
@@ -112,22 +106,15 @@ function VerifyInner() {
             <p className="mt-2 max-w-xl text-sm text-ash">
               Register a clean asset or pledge an encumbered one. Signed by your wallet on Sepolia.
             </p>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="carbon-panel p-5">
-                <TxAction
-                  label="Register asset (CLEAR fact)"
-                  chainId={sepolia.id}
-                  chainName="Sepolia"
-                  address={state.registryAddress}
-                  abi={REGISTRY_ABI}
-                  functionName="registerAsset"
-                  args={[state.asset]}
-                  disabled={!isConnected}
-                  explorerBase={SEPOLIA_TX}
-                  onConfirmed={refresh}
-                />
-              </div>
-              <div className="carbon-panel p-5">
+            {state.pledged ? (
+              <p className="mt-4 rounded-lg border border-block/40 bg-block/10 p-4 text-sm font-semibold text-bone">
+                Already pledged on Sepolia. Nothing left to write here; prove the pledge below.
+              </p>
+            ) : registered ? (
+              <div className="carbon-panel mt-4 p-5">
+                <p className="text-sm text-ash">
+                  Registered on Sepolia. Only step left here is pledging it, which records the ENCUMBERED fact.
+                </p>
                 <TxAction
                   label="Pledge asset (ENCUMBERED fact)"
                   chainId={sepolia.id}
@@ -142,23 +129,51 @@ function VerifyInner() {
                   danger
                 />
               </div>
-            </div>
+            ) : (
+              <div className="carbon-panel mt-4 p-5">
+                <p className="text-sm text-ash">
+                  Not on Sepolia yet. Register it now; your wallet signs once.
+                </p>
+                <TxAction
+                  label="Register asset (CLEAR fact)"
+                  chainId={sepolia.id}
+                  chainName="Sepolia"
+                  address={state.registryAddress}
+                  abi={REGISTRY_ABI}
+                  functionName="registerAsset"
+                  args={[state.asset]}
+                  disabled={!isConnected}
+                  explorerBase={SEPOLIA_TX}
+                  onConfirmed={refresh}
+                />
+              </div>
+            )}
 
             <h2 className="mt-10 font-display text-3xl text-bone">Prove it on Creditcoin</h2>
             <p className="mt-2 max-w-xl text-sm text-ash">
-              Pick a Sepolia transaction. The proof is built from public data and shown
-              before you sign; the gate re-verifies it on-chain, so a wrong proof simply reverts.
+              Each Sepolia transaction needs its own proof carried to Creditcoin. Only the
+              newest fact decides the verdict, but every proof below is independently
+              submittable: proving the registration records ALLOW, proving the pledge
+              records BLOCK.
             </p>
             {sepoliaTxs.length === 0 && (
               <p className="mt-3 text-sm text-ash">No Sepolia transactions for this asset yet.</p>
             )}
-            {sepoliaTxs.map((s) => (
+            {sepoliaTxs.map((s, i) => (
               <div key={s.txHash} className="mt-3 border-t border-white/10 pt-3">
                 <p className="font-mono text-xs break-all">
                   <a className="text-bullion-pale underline" href={s.explorer} target="_blank" rel="noopener noreferrer">
                     {s.txHash}
                   </a>{' '}
                   <span className="text-ash">({s.detail})</span>
+                </p>
+                <p className="mt-1 text-sm text-ash">
+                  {i === sepoliaTxs.length - 1 && sepoliaTxs.length > 1 && (
+                    <span className="font-semibold text-bone">Newest fact. </span>
+                  )}
+                  {s.step === 'pledged'
+                    ? 'Submitting this records BLOCK: financing will revert.'
+                    : 'Submitting this records ALLOW: financing may proceed.'}
                 </p>
                 <ProofSubmit
                   txHash={s.txHash!}
