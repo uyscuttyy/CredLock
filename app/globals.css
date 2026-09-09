@@ -52,7 +52,7 @@
 
 @layer components {
   .container-custom {
-    @apply mx-auto max-w-[96rem] px-2 sm:px-4 lg:px-6;
+    @apply mx-auto max-w-[72rem] px-4 sm:px-6 lg:px-8;
   }
 
   /* Woven carbon-fibre material: two opposing twill weaves at low opacity */

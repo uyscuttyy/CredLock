@@ -46,42 +46,47 @@ function VerifyInner() {
   )
 
   return (
-    <div className="container-custom py-12">
-      <p className="font-mono text-sm text-ash">Creditcoin · Attestcoin · Sepolia</p>
-      <h1 className="mt-3 max-w-4xl font-display text-4xl leading-tight text-bone md:text-5xl">
-        Verify an asset before it borrows.
-      </h1>
-      <p className="mt-4 max-w-3xl text-ash">
-        Create the asset on Sepolia, check its live record, and prove the fact on
-        Creditcoin. Every write below is signed by your wallet. Nothing here is
-        preloaded; every outcome is read live from chain state.
-      </p>
-
-      <section className="carbon-panel mt-8 p-6">
-        <h2 className="font-display text-2xl text-bone">1. Create the asset</h2>
-        <p className="mt-1 max-w-2xl text-sm text-ash">
-          Name it, see its on-chain id update as you type, copy it, and list it on
-          Sepolia without leaving the popup.
-        </p>
-        <button
-          onClick={() => setModalOpen(true)}
-          className="mt-4 rounded-lg bg-bullion px-6 py-2 text-sm font-semibold text-carbon-950 hover:bg-bullion-pale"
-        >
-          New asset
-        </button>
-      </section>
-
-      <section className="mt-8">
-        <h2 className="font-display text-2xl text-bone">2. Check it on chain</h2>
-        <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Asset name or 0x id"
-            spellCheck={false}
-            className="field-dark flex-1"
-          />
+    <div className="container-custom py-12 md:py-16">
+      <div className="grid gap-10 lg:grid-cols-5 lg:gap-8">
+        <div className="lg:col-span-3">
+          <p className="font-mono text-sm text-ash">Creditcoin · Attestcoin · Sepolia</p>
+          <h1 className="mt-3 font-display text-4xl leading-tight text-bone md:text-5xl">
+            Verify an asset before it borrows.
+          </h1>
+          <p className="mt-4 max-w-xl text-ash">
+            Create the asset on Sepolia, check its live record, and prove the fact on
+            Creditcoin. Every write below is signed by your wallet. Nothing here is
+            preloaded; every outcome is read live from chain state.
+          </p>
         </div>
+        <div className="lg:col-span-2 lg:mt-14">
+          <section className="carbon-panel border-t-2 border-t-bullion p-6">
+            <p className="font-mono text-xs text-bullion-pale">Step 01</p>
+            <h2 className="mt-1 font-display text-2xl text-bone">Create the asset</h2>
+            <p className="mt-2 text-sm leading-relaxed text-ash">
+              Name it, watch its on-chain id appear as you type, copy it, and list
+              it on Sepolia without leaving the popup.
+            </p>
+            <button
+              onClick={() => setModalOpen(true)}
+              className="mt-4 w-full rounded-lg bg-bullion px-6 py-2.5 text-sm font-semibold text-carbon-950 hover:bg-bullion-pale"
+            >
+              New asset
+            </button>
+          </section>
+        </div>
+      </div>
+
+      <section className="mt-14 max-w-2xl">
+        <p className="font-mono text-xs text-bullion-pale">Step 02</p>
+        <h2 className="mt-1 font-display text-3xl text-bone">Check it on chain</h2>
+        <input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Asset name or 0x id"
+          spellCheck={false}
+          className="field-dark mt-4 w-full"
+        />
         {input.trim() !== '' && (
           <p className="mt-2 font-mono text-xs text-ash break-all">
             {assetId !== '' && assetId !== input.trim() ? (
@@ -100,13 +105,13 @@ function VerifyInner() {
           <VerdictPanel state={state} />
 
           {state.verdict === 'NONE' && state.steps.length === 0 && (
-            <p className="mt-6 rounded-lg border border-dashed border-white/15 p-6 text-ash">
+            <p className="mt-6 max-w-2xl rounded-lg border border-dashed border-white/15 p-6 text-ash">
               No on-chain record for this asset. That is the honest answer for unknown ids.
               Create it above or register it below.
             </p>
           )}
 
-          <div className="mt-8 grid gap-6 lg:grid-cols-2">
+          <div className="mt-10 grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
             <section className="carbon-panel p-6">
               <h2 className="font-display text-2xl text-bone">Source chain: your writes</h2>
               <p className="mt-1 text-sm text-ash">Signed by your wallet on Sepolia.</p>
@@ -137,9 +142,9 @@ function VerifyInner() {
               />
             </section>
 
-            <section className="carbon-panel p-6">
+            <section className="carbon-panel border-t-2 border-t-bullion/60 p-6">
               <h2 className="font-display text-2xl text-bone">Prove a fact on Creditcoin</h2>
-              <p className="mt-1 text-sm text-ash">
+              <p className="mt-1 max-w-xl text-sm text-ash">
                 Pick a Sepolia transaction. The proof is built from public data and shown
                 before you sign; the gate re-verifies it on-chain, so a wrong proof simply reverts.
               </p>
@@ -166,16 +171,21 @@ function VerifyInner() {
             </section>
           </div>
 
-          <ChainHistory steps={state.steps} />
-
-          <div className="mt-8 text-center">
-            <Link
-              href={`/finance?assetId=${state.asset}`}
-              className="font-sans font-semibold text-bullion-pale transition-colors hover:text-bone"
-            >
-              Continue to financing <span aria-hidden>→</span>
-            </Link>
+          <div className="mt-10 max-w-3xl lg:ml-auto">
+            <ChainHistory steps={state.steps} />
           </div>
+
+          <Link
+            href={`/finance?assetId=${state.asset}`}
+            className="group mt-10 flex items-center justify-between gap-6 rounded-xl border border-bullion/40 bg-bullion/10 p-6 transition-colors hover:border-bullion"
+          >
+            <div>
+              <p className="font-mono text-xs text-bullion-pale">Step 03</p>
+              <p className="mt-1 font-display text-2xl text-bone">Take this asset to financing</p>
+              <p className="mt-1 text-sm text-ash">The gate reads the verdict and decides: may proceed, or will revert.</p>
+            </div>
+            <span aria-hidden className="font-display text-4xl text-bullion-pale transition-transform group-hover:translate-x-1">→</span>
+          </Link>
         </>
       )}
 
