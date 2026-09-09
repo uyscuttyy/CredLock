@@ -45,7 +45,7 @@ export const ConnectWallet = () => {
   if (mounted && isConnected) {
     return (
       <div className="flex items-center gap-2">
-        <span className="text-xs text-brand-muted hidden sm:block">
+        <span className="text-xs text-ash hidden sm:block">
           {address?.slice(0, 6)}...{address?.slice(-4)}
         </span>
         <Button variant="outline" size="sm" onClick={() => disconnect()}>
@@ -76,26 +76,26 @@ export const ConnectWallet = () => {
           Connect Wallet
         </Button>
       ) : (
-        <div className="absolute right-0 z-50 w-64 rounded bg-white p-2 shadow-card">
-          <p className="px-2 py-1 text-xs text-brand-muted">Pick a wallet</p>
+        <div className="absolute right-0 z-50 w-64 rounded-lg border border-white/10 bg-carbon-850 p-2 shadow-2xl">
+          <p className="px-2 py-1 font-mono text-xs text-ash">Pick a wallet</p>
           {connectors.map((c) => (
             <button
               key={c.id}
               onClick={() => void connectWith(c.id)}
               disabled={isConnecting}
-              className="block w-full rounded px-2 py-2 text-left text-sm hover:bg-brand-background disabled:opacity-50"
+              className="block w-full rounded px-2 py-2 text-left font-sans text-sm text-bone hover:bg-white/5 disabled:opacity-50"
             >
               {c.name}
             </button>
           ))}
           {connectors.length === 0 && (
-            <p className="px-2 py-1 text-xs text-brand-muted">
+            <p className="px-2 py-1 text-xs text-ash">
               None announced. Enable MetaMask for this site and reopen this menu.
             </p>
           )}
           <button
             onClick={() => setPicking(false)}
-            className="mt-1 block w-full rounded px-2 py-1 text-left text-xs text-brand-muted hover:bg-brand-background"
+            className="mt-1 block w-full rounded px-2 py-1 text-left text-xs text-ash hover:bg-white/5"
           >
             Cancel
           </button>
@@ -103,7 +103,7 @@ export const ConnectWallet = () => {
       )}
 
       {error && (
-        <p className="absolute right-0 mt-2 text-xs text-red-600 bg-white p-3 rounded shadow-card w-64">
+        <p className="absolute right-0 mt-2 w-64 rounded-lg border border-block/40 bg-carbon-850 p-3 text-xs text-block">
           {error}
         </p>
       )}

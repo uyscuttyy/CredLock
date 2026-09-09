@@ -102,11 +102,11 @@ function Stamp({ value }: { value: string }) {
   const allow = value === 'ALLOW' || value === 'SUCCESS' || value === 'CLEAR'
   const blocked = value === 'BLOCK' || value === 'REVERTED' || value === 'ENCUMBERED'
   const cls = allow
-    ? 'border-brand-accent text-brand-accent'
+    ? 'border-allow text-allow'
     : blocked
-      ? 'border-brand-alarm text-brand-alarm'
-      : 'border-brand-muted text-brand-muted'
-  return <span className={`verdict-stamp ${cls}`}>{value}</span>
+      ? 'border-block text-block'
+      : 'border-ash/40 text-ash'
+  return <span className={`verdict-stamp font-mono ${cls}`}>{value}</span>
 }
 
 /**
@@ -160,14 +160,14 @@ function TxAction({
   return (
     <div className="mt-3">
       {!mounted ? (
-        <button disabled className="rounded-md border border-brand-hairline px-5 py-2 text-sm text-brand-muted">
+        <button disabled className="rounded-lg border border-white/10 px-5 py-2 text-sm text-ash">
           {label}
         </button>
       ) : wrongChain ? (
         <button
           onClick={() => switchChain({ chainId })}
           disabled={switching}
-          className="rounded-md border border-brand-primary px-5 py-2 text-sm font-semibold"
+          className="rounded-lg border border-bullion/70 px-5 py-2 text-sm font-semibold text-bone"
         >
           {switching ? 'Switching…' : `Switch to ${chainName}`}
         </button>
@@ -177,8 +177,8 @@ function TxAction({
             write.writeContract({ address: address as `0x${string}`, abi, functionName, args })
           }
           disabled={disabled || write.isPending || receipt.isLoading}
-          className={`rounded-md px-5 py-2 text-sm font-semibold text-white disabled:opacity-50 ${
-            danger ? 'bg-brand-alarm' : 'bg-brand-accent'
+          className={`rounded-lg px-5 py-2 text-sm font-semibold text-carbon-950 disabled:opacity-50 ${
+            danger ? 'bg-block' : 'bg-bullion'
           }`}
         >
           {write.isPending ? 'Confirm in wallet…' : receipt.isLoading ? 'Confirming…' : label}
@@ -187,20 +187,20 @@ function TxAction({
       {write.data && (
         <p className="mt-2 font-mono text-xs break-all">
           <a
-            className="text-brand-accent underline"
+            className="text-bullion-pale underline"
             href={explorerBase + write.data}
             target="_blank"
             rel="noopener noreferrer"
           >
             {write.data}
           </a>{' '}
-          {receipt.isLoading && <span className="text-brand-muted">confirming…</span>}
-          {reverted && <span className="font-bold text-brand-alarm">REVERTED on-chain</span>}
-          {receipt.data && !reverted && <span className="font-bold text-brand-accent">confirmed</span>}
+          {receipt.isLoading && <span className="text-ash">confirming…</span>}
+          {reverted && <span className="font-bold text-block">REVERTED on-chain</span>}
+          {receipt.data && !reverted && <span className="font-bold text-allow">confirmed</span>}
         </p>
       )}
       {write.error && (
-        <p className="mt-2 text-sm text-brand-alarm">{write.error.message.slice(0, 240)}</p>
+        <p className="mt-2 text-sm text-block">{write.error.message.slice(0, 240)}</p>
       )}
     </div>
   )
@@ -240,21 +240,21 @@ function ProofSubmit({
   }
 
   return (
-    <div className="mt-2 rounded-md border border-brand-hairline p-3">
+    <div className="mt-2 rounded-lg border border-white/10 bg-carbon-950/60 p-3">
       {!proof ? (
         <>
           <button
             onClick={build}
             disabled={building}
-            className="rounded-md border border-brand-primary px-4 py-1.5 text-sm font-semibold disabled:opacity-50"
+            className="rounded-lg border border-bullion/70 px-4 py-1.5 text-sm font-semibold text-bone disabled:opacity-50"
           >
             {building ? 'Waiting for attestation + proving… (minutes)' : `Prove ${actionLabel} on Creditcoin`}
           </button>
-          {error && <p className="mt-2 text-sm text-brand-alarm">{error}</p>}
+          {error && <p className="mt-2 text-sm text-block">{error}</p>}
         </>
       ) : (
         <>
-          <p className="font-mono text-xs text-brand-muted">
+          <p className="font-mono text-xs text-ash">
             block {proof.headerNumber} · chainKey {proof.chainKey} · cached={String(proof.cached)} ·
             siblings {proof.siblings.length} · roots {proof.continuityRoots.length}
           </p>
@@ -342,18 +342,18 @@ export default function GatePage() {
 
   return (
     <div className="container-custom py-12">
-      <p className="font-mono text-sm text-brand-muted">Creditcoin · Attestcoin · Sepolia</p>
-      <h1 className="mt-3 max-w-4xl font-display text-4xl font-bold leading-tight md:text-5xl">
+      <p className="font-mono text-sm text-ash">Creditcoin · Attestcoin · Sepolia</p>
+      <h1 className="mt-3 max-w-4xl font-display text-4xl leading-tight text-bone md:text-5xl">
         Bring any asset. The chain decides.
       </h1>
-      <p className="mt-4 max-w-3xl text-brand-muted">
+      <p className="mt-4 max-w-3xl text-ash">
         Connect your wallet, register your asset on Sepolia, prove the fact on Creditcoin,
         and attempt financing — every write signed by you. Nothing here is preloaded;
         every outcome below is read live from chain state.
       </p>
 
       {mounted && !isConnected && (
-        <p className="mt-6 rounded-md border border-brand-hairline bg-white p-4 text-sm font-semibold">
+        <p className="mt-6 rounded-lg border border-bullion/40 bg-bullion/10 p-4 text-sm font-semibold text-bone">
           Connect your wallet (top right) — MetaMask on Sepolia and Creditcoin testnet.
         </p>
       )}
@@ -364,58 +364,58 @@ export default function GatePage() {
           onChange={(e) => setInput(e.target.value)}
           placeholder="Asset name (e.g. uyscutty) or 0x id"
           spellCheck={false}
-          className="flex-1 rounded-md border border-brand-hairline bg-white px-3 py-2 font-mono text-sm"
+          className="field-dark flex-1"
         />
         <button
           onClick={randomAsset}
-          className="rounded-md border border-brand-primary px-5 py-2 text-sm font-semibold"
+          className="rounded-lg border border-bullion/70 px-5 py-2 text-sm font-semibold text-bone"
         >
           New asset
         </button>
         <button
           onClick={load}
           disabled={loading || !valid}
-          className="rounded-md bg-brand-primary px-6 py-2 text-sm font-semibold text-white disabled:opacity-50"
+          className="rounded-lg bg-bullion px-6 py-2 text-sm font-semibold text-carbon-950 hover:bg-bullion-pale disabled:opacity-50"
         >
           {loading ? 'Reading chain…' : 'Read chain state'}
         </button>
       </div>
       {trimmed !== '' && (
-        <p className="mt-2 font-mono text-xs text-brand-muted break-all">
-          {isHex ? 'Using pasted id' : `“${trimmed}” hashes to`} <span className="text-brand-primary">{assetId}</span>
+        <p className="mt-2 font-mono text-xs text-ash break-all">
+          {isHex ? 'Using pasted id' : `“${trimmed}” hashes to`} <span className="text-bullion-pale">{assetId}</span>
         </p>
       )}
-      {error && <p className="mt-3 text-sm text-brand-alarm">{error}</p>}
+      {error && <p className="mt-3 text-sm text-block">{error}</p>}
 
       {state && (
         <>
-          <section className="mt-8 rounded-lg bg-brand-primary p-6 text-white md:p-8">
+          <section className={`carbon-panel mt-8 border-l-4 p-6 md:p-8 ${state.verdict === 'BLOCK' ? 'border-l-block' : state.verdict === 'ALLOW' ? 'border-l-allow' : 'border-l-bullion'}`}>
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
-                <p className="font-mono text-xs opacity-70">Live verdict · {state.verificationStatus}</p>
-                <p className="mt-1 font-mono text-sm break-all">{state.asset}</p>
+                <p className="font-mono text-xs text-ash">Live verdict · {state.verificationStatus}</p>
+                <p className="mt-1 font-mono text-sm text-bone break-all">{state.asset}</p>
               </div>
               <Stamp value={state.verdict} />
             </div>
-            <dl className="mt-6 grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
-              <div><dt className="opacity-70">Reason</dt><dd className="mt-1 font-mono">{state.reason}</dd></div>
-              <div><dt className="opacity-70">Financed</dt><dd className="mt-1 font-mono">{String(state.financed)}</dd></div>
-              <div><dt className="opacity-70">Pledged (Sepolia)</dt><dd className="mt-1 font-mono">{String(state.pledged)}</dd></div>
-              <div><dt className="opacity-70">Owner</dt><dd className="mt-1 font-mono text-xs break-all">{state.owner}</dd></div>
+            <dl className="mt-6 grid grid-cols-2 gap-4 font-sans text-sm text-bone sm:grid-cols-4">
+              <div><dt className="text-ash">Reason</dt><dd className="mt-1 font-mono">{state.reason}</dd></div>
+              <div><dt className="text-ash">Financed</dt><dd className="mt-1 font-mono">{String(state.financed)}</dd></div>
+              <div><dt className="text-ash">Pledged (Sepolia)</dt><dd className="mt-1 font-mono">{String(state.pledged)}</dd></div>
+              <div><dt className="text-ash">Owner</dt><dd className="mt-1 font-mono text-xs break-all">{state.owner}</dd></div>
             </dl>
           </section>
 
           {state.verdict === 'NONE' && state.steps.length === 0 && (
-            <p className="mt-6 rounded-md border border-dashed border-brand-hairline p-6 text-brand-muted">
+            <p className="mt-6 rounded-lg border border-dashed border-white/15 p-6 text-ash">
               No on-chain record for this asset — that is the honest answer for unknown ids.
               Register it below to create one.
             </p>
           )}
 
           <div className="mt-8 grid gap-6 lg:grid-cols-2">
-            <section className="rounded-lg border border-brand-hairline bg-white p-6">
-              <h2 className="font-display text-2xl font-bold">Source chain — your writes</h2>
-              <p className="mt-1 text-sm text-brand-muted">Signed by your wallet on Sepolia.</p>
+            <section className="carbon-panel p-6">
+              <h2 className="font-display text-2xl text-bone">Source chain — your writes</h2>
+              <p className="mt-1 text-sm text-ash">Signed by your wallet on Sepolia.</p>
               <TxAction
                 label="Register asset (CLEAR fact)"
                 chainId={sepolia.id}
@@ -443,9 +443,9 @@ export default function GatePage() {
               />
             </section>
 
-            <section className="rounded-lg border border-brand-hairline bg-white p-6">
-              <h2 className="font-display text-2xl font-bold">Financing — the hard gate</h2>
-              <p className="mt-1 text-sm text-brand-muted">
+            <section className="carbon-panel p-6">
+              <h2 className="font-display text-2xl text-bone">Financing — the hard gate</h2>
+              <p className="mt-1 text-sm text-ash">
                 Signed by your wallet on Creditcoin. Reverts unless verdict is ALLOW.
               </p>
               <TxAction
@@ -464,22 +464,22 @@ export default function GatePage() {
             </section>
           </div>
 
-          <section className="mt-6 rounded-lg border border-brand-hairline bg-white p-6">
-            <h2 className="font-display text-2xl font-bold">Prove a fact on Creditcoin</h2>
-            <p className="mt-1 max-w-3xl text-sm text-brand-muted">
+          <section className="carbon-panel mt-6 p-6">
+            <h2 className="font-display text-2xl text-bone">Prove a fact on Creditcoin</h2>
+            <p className="mt-1 max-w-3xl text-sm text-ash">
               Pick a Sepolia transaction below. The proof is built from public data and shown
               before you sign; the gate re-verifies it on-chain, so a wrong proof simply reverts.
             </p>
             {sepoliaTxs.length === 0 && (
-              <p className="mt-3 text-sm text-brand-muted">No Sepolia transactions for this asset yet.</p>
+              <p className="mt-3 text-sm text-ash">No Sepolia transactions for this asset yet.</p>
             )}
             {sepoliaTxs.map((s) => (
-              <div key={s.txHash} className="mt-3 border-t border-brand-hairline pt-3">
+              <div key={s.txHash} className="mt-3 border-t border-white/10 pt-3">
                 <p className="font-mono text-xs break-all">
-                  <a className="text-brand-accent underline" href={s.explorer} target="_blank" rel="noopener noreferrer">
+                  <a className="text-bullion-pale underline" href={s.explorer} target="_blank" rel="noopener noreferrer">
                     {s.txHash}
                   </a>{' '}
-                  <span className="text-brand-muted">({s.detail})</span>
+                  <span className="text-ash">({s.detail})</span>
                 </p>
                 <ProofSubmit
                   txHash={s.txHash!}
@@ -493,25 +493,25 @@ export default function GatePage() {
           </section>
 
           <section className="mt-6">
-            <h2 className="font-display text-2xl font-bold">Chain history</h2>
+            <h2 className="font-display text-2xl text-bone">Chain history</h2>
             {state.steps.length === 0 && (
-              <p className="mt-2 text-sm text-brand-muted">Empty — no events on either chain.</p>
+              <p className="mt-2 text-sm text-ash">Empty — no events on either chain.</p>
             )}
             {state.steps.map((s, i) => (
               <div key={`${s.txHash}-${i}`} className="ledger-row grid gap-1 md:grid-cols-[3rem_minmax(0,1fr)] md:gap-4">
-                <span className="font-mono text-sm text-brand-muted">{String(i + 1).padStart(2, '0')}</span>
+                <span className="font-mono text-sm text-ash">{String(i + 1).padStart(2, '0')}</span>
                 <div>
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <p className="font-semibold">{s.step}</p>
-                    <p className="font-mono text-xs text-brand-muted">{s.chain}</p>
+                    <p className="font-sans font-semibold text-bone">{s.step}</p>
+                    <p className="font-mono text-xs text-ash">{s.chain}</p>
                   </div>
-                  <p className="mt-1 text-sm text-brand-muted">{s.detail}</p>
+                  <p className="mt-1 text-sm text-ash">{s.detail}</p>
                   {s.txHash && (
                     <a
                       href={s.explorer}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="mt-1 block font-mono text-xs text-brand-accent underline break-all"
+                      className="mt-1 block font-mono text-xs text-bullion-pale underline break-all"
                     >
                       {s.txHash}
                     </a>

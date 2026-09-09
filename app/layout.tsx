@@ -5,8 +5,9 @@ import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
 
 export const metadata: Metadata = {
-  title: 'CredLock — Portable Financial Reputation',
-  description: 'Your financial history, verified across chains. CredLock turns your on-chain activity into verifiable financial credentials you can carry across ecosystems.',
+  title: 'CredLock — the double-pledge gate',
+  description:
+    'Before Creditcoin finances an RWA, CredLock forces a cryptographic clear-or-encumbered verdict from the source chain. Allow executes. Block reverts.',
 }
 
 export default function RootLayout({
@@ -18,7 +19,7 @@ export default function RootLayout({
     <html lang="en">
       <body className="font-sans">
         <WalletProvider>
-          <div className="min-h-screen bg-brand-background flex flex-col">
+          <div className="carbon min-h-screen flex flex-col text-bone">
             <Header />
             <main className="flex-1">{children}</main>
             <Footer />

@@ -9,19 +9,25 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        brand: {
-          background: '#F5F6F4',
-          primary: '#17211D',
-          accent: '#0C6B4A',
-          secondary: '#0A5740',
-          muted: '#5C6B63',
-          alarm: '#B33527',
-          hairline: '#DFE4E0',
+        carbon: {
+          950: '#0B0D0E',
+          900: '#14181B',
+          850: '#1B2125',
+          800: '#232A2F',
         },
+        bone: '#F4F2EC',
+        ash: '#9BA4A8',
+        bullion: {
+          DEFAULT: '#E3A82B',
+          deep: '#B9861F',
+          pale: '#F3CD6E',
+        },
+        allow: '#34D399',
+        block: '#F87171',
       },
       fontFamily: {
-        display: ['Charter', 'Bitstream Charter', 'Sitka Text', 'Cambria', 'Georgia', 'serif'],
-        sans: ['system-ui', '-apple-system', 'Segoe UI', 'Inter', 'sans-serif'],
+        display: ['Instrument Serif', 'Georgia', 'serif'],
+        sans: ['Instrument Sans', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
         mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
       },
       maxWidth: {

@@ -13,15 +13,10 @@ export const Header = () => {
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])
 
-  const navItems = [
-    { href: '/gate', label: 'Gate' },
-    { href: '/verify', label: 'Verify' },
-    { href: '/credentials', label: 'Credentials' },
-    { href: '/profile', label: 'Profile' },
-  ]
+  const navItems = [{ href: '/gate', label: 'Gate console' }]
 
   return (
-    <header className="sticky top-0 z-50 border-b border-brand-hairline bg-brand-background/95 backdrop-blur">
+    <header className="carbon sticky top-0 z-50 border-b border-white/10">
       <div className="container-custom flex items-center justify-between py-3">
         <Link href="/" aria-label="CredLock home">
           <Logo />
@@ -32,10 +27,10 @@ export const Header = () => {
             <Link
               key={item.href}
               href={item.href}
-              className={`text-sm transition-colors ${
+              className={`font-sans text-sm transition-colors ${
                 pathname === item.href
-                  ? 'font-semibold text-brand-primary underline underline-offset-8 decoration-brand-accent decoration-2'
-                  : 'text-brand-muted hover:text-brand-primary'
+                  ? 'font-semibold text-bullion'
+                  : 'text-ash hover:text-bone'
               }`}
             >
               {item.label}
@@ -45,7 +40,8 @@ export const Header = () => {
 
         <div className="flex items-center gap-3">
           {mounted && isConnected ? (
-            <span className="hidden font-mono text-xs text-brand-muted sm:block">
+            <span className="hidden items-center gap-2 font-mono text-xs text-ash sm:flex">
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-allow" aria-hidden />
               {address?.slice(0, 6)}…{address?.slice(-4)}
             </span>
           ) : null}
@@ -53,12 +49,12 @@ export const Header = () => {
         </div>
       </div>
 
-      <nav className="flex justify-around border-t border-brand-hairline py-2 md:hidden">
+      <nav className="flex justify-around border-t border-white/10 py-2 md:hidden">
         {navItems.map((item) => (
           <Link
             key={item.href}
             href={item.href}
-            className={`text-sm ${pathname === item.href ? 'font-semibold text-brand-primary' : 'text-brand-muted'}`}
+            className={`font-sans text-sm ${pathname === item.href ? 'font-semibold text-bullion' : 'text-ash'}`}
           >
             {item.label}
           </Link>

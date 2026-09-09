@@ -2,28 +2,50 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+  font-family: 'Instrument Serif';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/instrument-serif-400.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Instrument Sans';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('/fonts/instrument-sans-var.woff2') format('woff2');
+}
+
 @layer base {
   html {
     scroll-behavior: smooth;
   }
 
   body {
-    @apply bg-brand-background text-brand-primary font-sans antialiased;
+    @apply bg-carbon-950 text-bone font-sans antialiased;
   }
 
   ::selection {
-    background: #0C6B4A;
-    color: #fff;
+    background: #e3a82b;
+    color: #0b0d0e;
   }
 
   :focus-visible {
-    outline: 2px solid #0C6B4A;
+    outline: 2px solid #e3a82b;
     outline-offset: 2px;
   }
 
   @media (prefers-reduced-motion: reduce) {
     html {
       scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
     }
   }
 }
@@ -33,11 +55,78 @@
     @apply mx-auto max-w-[96rem] px-2 sm:px-4 lg:px-6;
   }
 
+  /* Woven carbon-fibre material: two opposing twill weaves at low opacity */
+  .carbon {
+    background-color: #0b0d0e;
+    background-image:
+      repeating-linear-gradient(
+        45deg,
+        rgba(255, 255, 255, 0.024) 0px,
+        rgba(255, 255, 255, 0.024) 2px,
+        transparent 2px,
+        transparent 5px
+      ),
+      repeating-linear-gradient(
+        -45deg,
+        rgba(255, 255, 255, 0.024) 0px,
+        rgba(255, 255, 255, 0.024) 2px,
+        transparent 2px,
+        transparent 5px
+      );
+  }
+
+  .carbon-panel {
+    @apply rounded-lg border border-white/10 bg-carbon-900;
+    background-image:
+      repeating-linear-gradient(
+        45deg,
+        rgba(255, 255, 255, 0.02) 0px,
+        rgba(255, 255, 255, 0.02) 2px,
+        transparent 2px,
+        transparent 5px
+      ),
+      repeating-linear-gradient(
+        -45deg,
+        rgba(255, 255, 255, 0.02) 0px,
+        rgba(255, 255, 255, 0.02) 2px,
+        transparent 2px,
+        transparent 5px
+      );
+  }
+
+  .carbon-sheen {
+    background-image: radial-gradient(
+      ellipse 90% 60% at 50% -10%,
+      rgba(227, 168, 43, 0.09),
+      transparent 70%
+    );
+  }
+
   .ledger-row {
-    @apply border-t border-brand-hairline py-4;
+    @apply border-t border-white/10 py-4;
   }
 
   .verdict-stamp {
-    @apply inline-block rounded-md border-2 px-5 py-2 font-display font-bold tracking-wide;
+    @apply inline-block rounded-md border-2 px-5 py-2 font-sans font-bold tracking-wide;
+  }
+
+  .field-dark {
+    @apply rounded-md border border-white/15 bg-carbon-850 px-3 py-2 font-mono text-sm text-bone placeholder:text-ash/60 focus:border-bullion focus:outline-none;
+  }
+
+  /* Single orchestrated entrance: hero only */
+  @keyframes rise-in {
+    from {
+      opacity: 0;
+      transform: translateY(14px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .rise-in {
+    animation: rise-in 0.7s ease-out both;
   }
 }
