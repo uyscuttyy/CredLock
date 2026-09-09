@@ -104,7 +104,7 @@ function VerifyInner() {
         </div>
       </section>
 
-      {state && state.steps.length > 0 && (
+      {state && (
         <section>
           <div className="container-custom max-w-3xl py-12">
             <p className="font-mono text-xs text-bullion-pale">Step 02 · Prove the fact</p>

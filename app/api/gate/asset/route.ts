@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { JsonRpcProvider, id, getAddress } from 'ethers'
 import { gateContract, readVerdict } from '@/lib/credlock/gate'
 import { registryContract } from '@/lib/credlock/registry'
+import { findDeploymentBlock } from '@/lib/credlock/deployBlock'
+import { scanLogs } from '@/lib/credlock/logs'
 import { CREDLOCK_CHAIN, loadCredLockConfig } from '@/lib/credlock/config'
 
 const VERDICTS = ['NONE', 'ALLOW', 'BLOCK'] as const
@@ -45,22 +47,29 @@ export async function GET(request: NextRequest) {
     const registry = registryContract(cfg.registryAddress, sepolia)
     const gate = gateContract(cfg.gateAddress, cc)
 
+    // Log scans start at each contract's deployment block: the Sepolia RPC
+    // caps ranges at 50k blocks, and 'earliest' is rejected outright.
+    const [sepoliaDeploy, ccDeploy] = await Promise.all([
+      findDeploymentBlock(
+        sepolia,
+        getAddress(cfg.registryAddress),
+        process.env.SOURCE_DEPLOY_BLOCK,
+      ),
+      findDeploymentBlock(cc, getAddress(cfg.gateAddress), process.env.GATE_DEPLOY_BLOCK),
+    ])
+
+    const regAddr = getAddress(cfg.registryAddress)
+    const gateAddr = getAddress(cfg.gateAddress)
     const [owner, pledged, verdict, financed, regLogs, pledgeLogs, verdictLogs, finLogs] =
       await Promise.all([
         registry.assetOwner(assetId) as Promise<string>,
         registry.isPledged(assetId) as Promise<boolean>,
         readVerdict(gate, assetId),
         gate.financed(assetId) as Promise<boolean>,
-        sepolia.getLogs({
-          address: getAddress(cfg.registryAddress),
-          topics: [REGISTER_SIG, assetId],
-        }),
-        sepolia.getLogs({
-          address: getAddress(cfg.registryAddress),
-          topics: [PLEDGE_SIG, assetId],
-        }),
-        cc.getLogs({ address: getAddress(cfg.gateAddress), topics: [VERDICT_RECORDED_SIG, assetId] }),
-        cc.getLogs({ address: getAddress(cfg.gateAddress), topics: [FINANCED_SIG, assetId] }),
+        scanLogs(sepolia, { address: regAddr, topics: [REGISTER_SIG, assetId] }, sepoliaDeploy),
+        scanLogs(sepolia, { address: regAddr, topics: [PLEDGE_SIG, assetId] }, sepoliaDeploy),
+        scanLogs(cc, { address: gateAddr, topics: [VERDICT_RECORDED_SIG, assetId] }, ccDeploy),
+        scanLogs(cc, { address: gateAddr, topics: [FINANCED_SIG, assetId] }, ccDeploy),
       ])
 
     const steps: AssetStep[] = []
