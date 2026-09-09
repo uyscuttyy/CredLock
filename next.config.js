@@ -1,6 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  async redirects() {
+    return [{ source: '/gate', destination: '/verify', permanent: false }]
+  },
   images: {
     domains: ['assets.coingecko.com', 'raw.githubusercontent.com'],
   },

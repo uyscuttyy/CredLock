@@ -18,7 +18,7 @@ export default function HomePage() {
             financing transaction itself refuses, no matter who clicks the button.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
-            <Link href="/gate" className={linkCls}>
+            <Link href="/verify" className={linkCls}>
               Inspect the gate <span aria-hidden>→</span>
             </Link>
             <Link href="#rule" className={linkCls}>
@@ -76,7 +76,7 @@ export default function HomePage() {
             transaction, and the final outcome. Run the same asset twice:
             first clean, then pledged, and the second financing visibly fails.
           </p>
-          <Link href="/gate" className={`${linkCls} mt-6 inline-block`}>
+          <Link href="/verify" className={`${linkCls} mt-6 inline-block`}>
             Open the gate console <span aria-hidden>→</span>
           </Link>
         </div>

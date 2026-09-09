@@ -8,7 +8,10 @@ import { Logo } from '@/components/layout/Logo'
 export const Header = () => {
   const pathname = usePathname()
 
-  const navItems = [{ href: '/gate', label: 'Gate console' }]
+  const navItems = [
+    { href: '/verify', label: 'Verify' },
+    { href: '/finance', label: 'Finance' },
+  ]
 
   return (
     <header className="carbon sticky top-0 z-50 border-b border-white/10">
