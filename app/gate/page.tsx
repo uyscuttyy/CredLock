@@ -348,13 +348,13 @@ export default function GatePage() {
       </h1>
       <p className="mt-4 max-w-3xl text-ash">
         Connect your wallet, register your asset on Sepolia, prove the fact on Creditcoin,
-        and attempt financing — every write signed by you. Nothing here is preloaded;
+        and attempt financing: every write signed by you. Nothing here is preloaded;
         every outcome below is read live from chain state.
       </p>
 
       {mounted && !isConnected && (
         <p className="mt-6 rounded-lg border border-bullion/40 bg-bullion/10 p-4 text-sm font-semibold text-bone">
-          Connect your wallet (top right) — MetaMask on Sepolia and Creditcoin testnet.
+          Connect your wallet (top right): MetaMask on Sepolia and Creditcoin testnet.
         </p>
       )}
 
@@ -407,14 +407,14 @@ export default function GatePage() {
 
           {state.verdict === 'NONE' && state.steps.length === 0 && (
             <p className="mt-6 rounded-lg border border-dashed border-white/15 p-6 text-ash">
-              No on-chain record for this asset — that is the honest answer for unknown ids.
+              No on-chain record for this asset. That is the honest answer for unknown ids.
               Register it below to create one.
             </p>
           )}
 
           <div className="mt-8 grid gap-6 lg:grid-cols-2">
             <section className="carbon-panel p-6">
-              <h2 className="font-display text-2xl text-bone">Source chain — your writes</h2>
+              <h2 className="font-display text-2xl text-bone">Source chain: your writes</h2>
               <p className="mt-1 text-sm text-ash">Signed by your wallet on Sepolia.</p>
               <TxAction
                 label="Register asset (CLEAR fact)"
@@ -444,7 +444,7 @@ export default function GatePage() {
             </section>
 
             <section className="carbon-panel p-6">
-              <h2 className="font-display text-2xl text-bone">Financing — the hard gate</h2>
+              <h2 className="font-display text-2xl text-bone">Financing: the hard gate</h2>
               <p className="mt-1 text-sm text-ash">
                 Signed by your wallet on Creditcoin. Reverts unless verdict is ALLOW.
               </p>
@@ -495,7 +495,7 @@ export default function GatePage() {
           <section className="mt-6">
             <h2 className="font-display text-2xl text-bone">Chain history</h2>
             {state.steps.length === 0 && (
-              <p className="mt-2 text-sm text-ash">Empty — no events on either chain.</p>
+              <p className="mt-2 text-sm text-ash">Empty. No events on either chain.</p>
             )}
             {state.steps.map((s, i) => (
               <div key={`${s.txHash}-${i}`} className="ledger-row grid gap-1 md:grid-cols-[3rem_minmax(0,1fr)] md:gap-4">

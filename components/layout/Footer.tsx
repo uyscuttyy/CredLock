@@ -12,7 +12,7 @@ export const Footer = () => {
           <p className="mt-2 max-w-md text-sm leading-relaxed text-ash">
             Before Creditcoin lends against an RWA, CredLock forces a cryptographic
             clear-or-encumbered result from the source chain. The second financing
-            cannot complete — the contract refuses it.
+            cannot complete. The contract refuses it.
           </p>
         </div>
 

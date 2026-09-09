@@ -5,7 +5,7 @@ import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
 
 export const metadata: Metadata = {
-  title: 'CredLock — the double-pledge gate',
+  title: 'CredLock, the double-pledge gate',
   description:
     'Before Creditcoin finances an RWA, CredLock forces a cryptographic clear-or-encumbered verdict from the source chain. Allow executes. Block reverts.',
 }

@@ -1,17 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useAccount } from 'wagmi'
 import { ConnectWallet } from '@/components/wallet/ConnectWallet'
 import { Logo } from '@/components/layout/Logo'
 
 export const Header = () => {
   const pathname = usePathname()
-  const { address, isConnected } = useAccount()
-  const [mounted, setMounted] = useState(false)
-  useEffect(() => setMounted(true), [])
 
   const navItems = [{ href: '/gate', label: 'Gate console' }]
 
@@ -38,13 +33,7 @@ export const Header = () => {
           ))}
         </nav>
 
-        <div className="flex items-center gap-3">
-          {mounted && isConnected ? (
-            <span className="hidden items-center gap-2 font-mono text-xs text-ash sm:flex">
-              <span className="inline-block h-1.5 w-1.5 rounded-full bg-allow" aria-hidden />
-              {address?.slice(0, 6)}…{address?.slice(-4)}
-            </span>
-          ) : null}
+        <div className="flex items-center">
           <ConnectWallet />
         </div>
       </div>

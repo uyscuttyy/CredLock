@@ -44,13 +44,27 @@ export const ConnectWallet = () => {
 
   if (mounted && isConnected) {
     return (
-      <div className="flex items-center gap-2">
-        <span className="text-xs text-ash hidden sm:block">
-          {address?.slice(0, 6)}...{address?.slice(-4)}
-        </span>
-        <Button variant="outline" size="sm" onClick={() => disconnect()}>
-          Disconnect
-        </Button>
+      <div className="relative flex items-center gap-2">
+        <span className="inline-block h-1.5 w-1.5 rounded-full bg-allow" aria-hidden />
+        <button
+          onClick={() => setPicking((p) => !p)}
+          className="rounded-lg border border-bullion/70 px-4 py-1.5 font-mono text-xs text-bone hover:border-bullion"
+        >
+          {address?.slice(0, 6)}…{address?.slice(-4)}
+        </button>
+        {picking && (
+          <div className="absolute right-0 top-full z-50 mt-2 w-44 rounded-lg border border-white/10 bg-carbon-850 p-2 shadow-2xl">
+            <button
+              onClick={() => {
+                disconnect()
+                setPicking(false)
+              }}
+              className="block w-full rounded px-2 py-2 text-left font-sans text-sm text-bone hover:bg-white/5"
+            >
+              Disconnect
+            </button>
+          </div>
+        )}
       </div>
     )
   }
