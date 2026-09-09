@@ -6,7 +6,7 @@ const linkCls =
 export default function HomePage() {
   return (
     <div>
-      <section className="carbon-sheen border-b border-white/10">
+      <section className="carbon-sheen">
         <div className="container-custom rise-in py-16 text-center md:py-24">
           <p className="font-mono text-sm text-ash">Creditcoin · Attestcoin · Sepolia</p>
           <h1 className="mx-auto mt-4 max-w-4xl font-display text-5xl leading-[1.05] text-bone md:text-7xl">
@@ -47,7 +47,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section id="rule" className="border-b border-white/10">
+      <section id="rule" className="bg-carbon-850/50">
         <div className="container-custom py-14">
           <h2 className="max-w-2xl font-display text-3xl text-bone md:text-4xl">One rule, enforced by the contract</h2>
           <div className="mt-6">
