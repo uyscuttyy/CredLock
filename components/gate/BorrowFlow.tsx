@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { creditcoinTestnet } from '@/lib/credlock/chains'
 import { GATE_ABI, CC_TX } from './contracts'
@@ -24,6 +24,15 @@ export function BorrowFlow({
   const [proof, setProof] = useState<Proof | null>(null)
   const [building, setBuilding] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [elapsed, setElapsed] = useState(0)
+  const abortRef = useRef<AbortController | null>(null)
+
+  useEffect(() => {
+    if (!building) return
+    setElapsed(0)
+    const t = setInterval(() => setElapsed((s) => s + 1), 1000)
+    return () => clearInterval(t)
+  }, [building])
 
   const sepoliaTxs = state.steps.filter(
     (s) => s.chain.includes('Sepolia') && s.txHash && (s.step === 'registered' || s.step === 'pledged'),
@@ -58,19 +67,30 @@ export function BorrowFlow({
   }
 
   async function build() {
+    const ctl = new AbortController()
+    abortRef.current = ctl
     setBuilding(true)
     setError(null)
     setProof(null)
     try {
-      const res = await fetch(`/api/gate/proof?txHash=${latest!.txHash}`)
+      const res = await fetch(`/api/gate/proof?txHash=${latest!.txHash}`, { signal: ctl.signal })
       const body = await res.json()
       if (!res.ok) throw new Error(body.error ?? 'proof build failed')
       setProof(body as Proof)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'proof build failed')
+      if (e instanceof DOMException && e.name === 'AbortError') {
+        setError('Stopped. Retry whenever ready; nothing was submitted.')
+      } else {
+        setError(e instanceof Error ? e.message : 'proof build failed')
+      }
     } finally {
       setBuilding(false)
+      abortRef.current = null
     }
+  }
+
+  function cancel() {
+    abortRef.current?.abort()
   }
 
   return (
@@ -92,13 +112,29 @@ export function BorrowFlow({
 
       {!proof ? (
         <>
-          <button
-            onClick={build}
-            disabled={building || !isConnected}
-            className="mt-4 rounded-lg bg-bullion px-6 py-2 text-sm font-semibold text-carbon-950 hover:bg-bullion-pale disabled:opacity-50"
-          >
-            {building ? 'Checking collateral and building proof… (minutes)' : 'Borrow'}
-          </button>
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <button
+              onClick={build}
+              disabled={building || !isConnected}
+              className="rounded-lg bg-bullion px-6 py-2 text-sm font-semibold text-carbon-950 hover:bg-bullion-pale disabled:opacity-50"
+            >
+              {building ? 'Waiting for attestation, then proving…' : 'Borrow'}
+            </button>
+            {building && (
+              <button
+                onClick={cancel}
+                className="rounded-lg border border-white/20 px-4 py-2 text-sm font-semibold text-ash hover:text-bone"
+              >
+                Stop
+              </button>
+            )}
+          </div>
+          {building && (
+            <p className="mt-2 font-mono text-xs text-ash">
+              {Math.floor(elapsed / 60)}:{String(elapsed % 60).padStart(2, '0')} elapsed ·
+              waiting for Creditcoin attestors to attest the Sepolia block, then building the proof.
+            </p>
+          )}
           {!isConnected && (
             <p className="mt-2 text-sm text-ash">Connect your wallet (top right) to borrow.</p>
           )}

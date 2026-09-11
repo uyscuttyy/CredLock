@@ -149,13 +149,16 @@ function VerifyInner() {
               </div>
             )}
 
-            <h2 className="mt-10 font-display text-3xl text-bone">Prove it on Creditcoin</h2>
-            <p className="mt-2 max-w-xl text-sm text-ash">
-              Each Sepolia transaction needs its own proof carried to Creditcoin. Only the
-              newest fact decides the verdict, but every proof below is independently
-              submittable: proving the registration records ALLOW, proving the pledge
-              records BLOCK.
-            </p>
+            <details className="mt-10">
+              <summary className="cursor-pointer font-sans font-semibold text-bullion-pale hover:text-bone">
+                Advanced: inspect the proofs
+              </summary>
+              <p className="mt-3 max-w-xl text-sm text-ash">
+                Borrowing already proves the newest fact by itself. This list exists so a
+                judge can record individual verdicts and see the mechanics: each Sepolia
+                transaction needs its own proof carried to Creditcoin. Proving the
+                registration records ALLOW, proving the pledge records BLOCK.
+              </p>
             {sepoliaTxs.length === 0 && (
               <p className="mt-3 text-sm text-ash">No Sepolia transactions for this asset yet.</p>
             )}
@@ -184,6 +187,8 @@ function VerifyInner() {
                 />
               </div>
             ))}
+
+            </details>
 
             <ChainHistory steps={state.steps} />
 
