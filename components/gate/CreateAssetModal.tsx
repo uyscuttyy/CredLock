@@ -141,7 +141,7 @@ export function CreateAssetModal({
               </p>
             ) : (
               <TxAction
-                label="Source asset on Sepolia (CLEAR fact)"
+                label="List asset on Sepolia (CLEAR fact)"
                 chainId={sepolia.id}
                 chainName="Sepolia"
                 address={registryAddress}
