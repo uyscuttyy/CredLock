@@ -14,8 +14,10 @@ import {
 /// Attestcoin readability proof of the asset's foreign-chain encumbrance fact:
 ///   proven AssetRegistered (CLEAR)      -> verdict ALLOW -> financing may execute
 ///   proven AssetPledged (ENCUMBERED)    -> verdict BLOCK -> financing MUST revert
-/// The UI and backend are never the security boundary: requestFinancing reads
-/// only the on-chain verdict written by verified proofs.
+/// The UI and backend are never the security boundary: requestFinancingWithProof
+/// verifies the supplied Attestcoin proof and derives the decision from the
+/// proven transaction itself. The standalone execute() path only records
+/// inspection verdicts and can never re-open a BLOCK (VerdictLocked).
 ///
 /// Verification semantics mirror ASCBase (verify inclusion + continuity via
 /// the BlockProver precompile, dedupe by query id), except the entry point
@@ -62,6 +64,7 @@ contract CredLockGate is Ownable {
     error InvalidAction(uint8 action);
     error UnregisteredSource();
     error UnexpectedSourceChain();
+    error VerdictLocked();
 
     constructor(address initialOwner) Ownable(initialOwner) {
         VERIFIER = NativeQueryVerifierLib.getVerifier();
@@ -79,16 +82,54 @@ contract CredLockGate is Ownable {
         return verdicts[assetId];
     }
 
-    /// @notice Creditcoin financing action. Reverts unless verdict is ALLOW.
-    /// @dev This is the hard gate: BLOCK, NONE, and double-financing all revert.
-    function requestFinancing(bytes32 assetId) external returns (bool) {
-        Verdict v = verdicts[assetId];
-        if (v == Verdict.BLOCK) revert AssetEncumbered();
-        if (v != Verdict.ALLOW) revert MissingVerification();
+    /// @notice Creditcoin financing action fused with proof verification.
+    /// @dev This is the hard gate: the financing transaction itself carries the
+    /// Attestcoin proof, and the decision is derived from the proven
+    /// transaction, never from a caller flag or a stale stored verdict:
+    ///   proven pledge for assetId     -> reverts AssetEncumbered (the block
+    ///     itself is the enforcement; a revert persists no verdict)
+    ///   proven registration, no BLOCK -> records ALLOW, executes financing
+    /// BLOCK is terminal: once an asset is proven pledged, no later CLEAR
+    /// proof can re-open it (the registry has no un-pledge).
+    function requestFinancingWithProof(
+        bytes32 assetId,
+        uint64 chainKey,
+        uint64 blockHeight,
+        bytes calldata encodedTransaction,
+        bytes32 merkleRoot,
+        INativeQueryVerifier.MerkleProofEntry[] calldata siblings,
+        bytes32 lowerEndpointDigest,
+        bytes32[] calldata continuityRoots
+    ) external returns (bool) {
+        if (sourceChainKey == 0) revert UnregisteredSource();
+        if (chainKey != sourceChainKey) revert UnexpectedSourceChain();
         if (financed[assetId]) revert AlreadyFinanced();
-        financed[assetId] = true;
-        emit FinancingExecuted(assetId, msg.sender);
-        return true;
+
+        bool verified = _verifyProof(
+            chainKey,
+            blockHeight,
+            encodedTransaction,
+            merkleRoot,
+            siblings,
+            lowerEndpointDigest,
+            continuityRoots
+        );
+        require(verified, "Proof of inclusion verification failed");
+
+        if (_provenEventPresent(encodedTransaction, PLEDGE_EVENT_SIGNATURE, assetId)) {
+            verdicts[assetId] = Verdict.BLOCK;
+            emit VerdictRecorded(assetId, Verdict.BLOCK, bytes32(0));
+            revert AssetEncumbered();
+        }
+        if (_provenEventPresent(encodedTransaction, REGISTER_EVENT_SIGNATURE, assetId)) {
+            if (verdicts[assetId] == Verdict.BLOCK) revert AssetEncumbered();
+            verdicts[assetId] = Verdict.ALLOW;
+            emit VerdictRecorded(assetId, Verdict.ALLOW, bytes32(0));
+            financed[assetId] = true;
+            emit FinancingExecuted(assetId, msg.sender);
+            return true;
+        }
+        revert MissingVerification();
     }
 
     /// @notice Verify an Attestcoin readability proof, then record the verdict.
@@ -134,6 +175,7 @@ contract CredLockGate is Ownable {
     ) internal {
         if (action == ACTION_RECORD_CLEAR) {
             bytes32 assetId = _extractAssetId(encodedTransaction, REGISTER_EVENT_SIGNATURE);
+            if (verdicts[assetId] == Verdict.BLOCK) revert VerdictLocked();
             verdicts[assetId] = Verdict.ALLOW;
             emit VerdictRecorded(assetId, Verdict.ALLOW, queryId);
         } else if (action == ACTION_RECORD_ENCUMBERED) {
@@ -190,6 +232,28 @@ contract CredLockGate is Ownable {
             mstore(add(ptr, 40), txIndex)
             queryId := keccak256(ptr, 72)
         }
+    }
+
+    /// @notice Non-reverting twin of _extractAssetId for the fused borrow path:
+    /// answers whether the proven transaction carries the expected event for
+    /// the requested asset instead of reverting when it does not.
+    function _provenEventPresent(
+        bytes memory encodedTransaction,
+        bytes32 eventSignature,
+        bytes32 assetId
+    ) internal view returns (bool) {
+        if (sourceRegistry == address(0)) return false;
+        uint8 txType = EvmV1Decoder.getTransactionType(encodedTransaction);
+        if (!EvmV1Decoder.isValidTransactionType(txType)) return false;
+        EvmV1Decoder.ReceiptFields memory receipt = EvmV1Decoder.decodeReceiptFields(encodedTransaction);
+        if (receipt.receiptStatus != 1) return false;
+        EvmV1Decoder.LogEntry[] memory logs = EvmV1Decoder.getLogsByEventSignature(receipt, eventSignature);
+        if (logs.length == 0) return false;
+        EvmV1Decoder.LogEntry memory log = logs[0];
+        if (log.address_ != sourceRegistry) return false;
+        if (log.topics.length != 3) return false;
+        if (log.topics[0] != eventSignature) return false;
+        return log.topics[1] == assetId;
     }
 
     /// @notice Decode the proven transaction and extract the assetId from the

@@ -83,6 +83,14 @@ contract CredLockGateTest is Test {
         return gate.execute(action, CHAIN_KEY, nextHeight++, encodedTx, bytes32(0), siblings, bytes32(0), roots);
     }
 
+    function _borrow(bytes memory encodedTx) internal returns (bool) {
+        INativeQueryVerifier.MerkleProofEntry[] memory siblings = new INativeQueryVerifier.MerkleProofEntry[](0);
+        bytes32[] memory roots = new bytes32[](0);
+        return gate.requestFinancingWithProof(
+            ASSET, CHAIN_KEY, nextHeight++, encodedTx, bytes32(0), siblings, bytes32(0), roots
+        );
+    }
+
     function _registerProof() internal returns (bytes memory) {
         return _encodeTx(address(registry), _topics(gate.REGISTER_EVENT_SIGNATURE(), ASSET, address(this)), 1);
     }
@@ -91,43 +99,102 @@ contract CredLockGateTest is Test {
         return _encodeTx(address(registry), _topics(gate.PLEDGE_EVENT_SIGNATURE(), ASSET, address(this)), 1);
     }
 
-    // ---- verdict + financing gate ----
+    // ---- verdict + financing gate (standalone execute path) ----
 
-    function test_ClearProofRecordsAllowAndFinancingSucceeds() public {
+    function test_ClearProofRecordsAllow() public {
         assertTrue(_submit(gate.ACTION_RECORD_CLEAR(), _registerProof()));
         assertEq(uint8(gate.verdictOf(ASSET)), uint8(CredLockGate.Verdict.ALLOW));
-        assertTrue(gate.requestFinancing(ASSET));
-        assertTrue(gate.financed(ASSET));
     }
 
-    function test_EncumberedProofRecordsBlockAndFinancingReverts() public {
+    function test_EncumberedProofRecordsBlock() public {
         assertTrue(_submit(gate.ACTION_RECORD_ENCUMBERED(), _pledgeProof()));
         assertEq(uint8(gate.verdictOf(ASSET)), uint8(CredLockGate.Verdict.BLOCK));
-        vm.expectRevert(CredLockGate.AssetEncumbered.selector);
-        gate.requestFinancing(ASSET);
+    }
+
+    function test_ClearAfterBlockRevertsVerdictLocked() public {
+        bytes memory encProof = _pledgeProof();
+        bytes memory clrProof = _registerProof();
+        uint8 actEnc = gate.ACTION_RECORD_ENCUMBERED();
+        uint8 actClr = gate.ACTION_RECORD_CLEAR();
+        _submit(actEnc, encProof);
+        vm.expectRevert(CredLockGate.VerdictLocked.selector);
+        _submit(actClr, clrProof);
+        assertEq(uint8(gate.verdictOf(ASSET)), uint8(CredLockGate.Verdict.BLOCK));
     }
 
     function test_SameAssetClearThenEncumberedFlipsToBlock() public {
         _submit(gate.ACTION_RECORD_CLEAR(), _registerProof());
-        assertTrue(gate.requestFinancing(ASSET));
+        assertEq(uint8(gate.verdictOf(ASSET)), uint8(CredLockGate.Verdict.ALLOW));
         // Foreign-chain state changes: asset pledged, proof submitted.
         _submit(gate.ACTION_RECORD_ENCUMBERED(), _pledgeProof());
         assertEq(uint8(gate.verdictOf(ASSET)), uint8(CredLockGate.Verdict.BLOCK));
-        // Second financing must not proceed: BLOCK takes precedence.
+    }
+
+    // ---- fused borrow path: proof in, decision out ----
+
+    function test_BorrowWithClearProofSucceeds() public {
+        assertTrue(_borrow(_registerProof()));
+        assertTrue(gate.financed(ASSET));
+        assertEq(uint8(gate.verdictOf(ASSET)), uint8(CredLockGate.Verdict.ALLOW));
+    }
+
+    function test_BorrowWithPledgeProofReverts() public {
+        bytes memory pledgeProof = _pledgeProof();
         vm.expectRevert(CredLockGate.AssetEncumbered.selector);
-        gate.requestFinancing(ASSET);
+        _borrow(pledgeProof);
+        // A revert persists no state: the block is the enforcement.
+        assertTrue(!gate.financed(ASSET));
     }
 
-    function test_FinancingWithoutVerificationReverts() public {
+    function test_BorrowWithStaleClearAfterBlockReverts() public {
+        // Pledge proven through the record path first (BLOCK sticks).
+        _submit(gate.ACTION_RECORD_ENCUMBERED(), _pledgeProof());
+        bytes memory staleProof = _registerProof();
+        vm.expectRevert(CredLockGate.AssetEncumbered.selector);
+        _borrow(staleProof);
+        assertTrue(!gate.financed(ASSET));
+    }
+
+    function test_BorrowWithWrongAssetProofReverts() public {
+        bytes32 sig = gate.REGISTER_EVENT_SIGNATURE();
+        bytes32 other = keccak256("someone-elses-asset");
+        bytes memory forged = _encodeTx(
+            address(registry), _topics(sig, other, address(this)), 1
+        );
         vm.expectRevert(CredLockGate.MissingVerification.selector);
-        gate.requestFinancing(ASSET);
+        _borrow(forged);
+        assertEq(uint8(gate.verdictOf(ASSET)), uint8(CredLockGate.Verdict.NONE));
     }
 
-    function test_DoubleFinancingReverts() public {
-        _submit(gate.ACTION_RECORD_CLEAR(), _registerProof());
-        gate.requestFinancing(ASSET);
+    function test_BorrowTwiceRevertsAlreadyFinanced() public {
+        bytes memory clearProof = _registerProof();
+        _borrow(clearProof);
         vm.expectRevert(CredLockGate.AlreadyFinanced.selector);
-        gate.requestFinancing(ASSET);
+        _borrow(clearProof);
+    }
+
+    function test_BorrowWithInvalidProofReverts() public {
+        bytes memory badProof = _registerProof();
+        MockVerifier(PRECOMPILE).setResult(false);
+        vm.expectRevert("Proof of inclusion verification failed");
+        _borrow(badProof);
+        assertTrue(!gate.financed(ASSET));
+    }
+
+    function test_BorrowWithUnrelatedTxReverts() public {
+        bytes memory empty = _encodeTx(address(registry), new bytes32[](0), 1);
+        vm.expectRevert(CredLockGate.MissingVerification.selector);
+        _borrow(empty);
+    }
+
+    function test_BorrowWithWrongChainKeyReverts() public {
+        INativeQueryVerifier.MerkleProofEntry[] memory siblings = new INativeQueryVerifier.MerkleProofEntry[](0);
+        bytes32[] memory roots = new bytes32[](0);
+        bytes memory proof = _registerProof();
+        vm.expectRevert(CredLockGate.UnexpectedSourceChain.selector);
+        gate.requestFinancingWithProof(
+            ASSET, 3, nextHeight++, proof, bytes32(0), siblings, bytes32(0), roots
+        );
     }
 
     // ---- verification boundary ----
