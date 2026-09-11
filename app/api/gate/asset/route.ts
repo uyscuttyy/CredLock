@@ -4,6 +4,7 @@ import { gateContract, readVerdict } from '@/lib/credlock/gate'
 import { registryContract } from '@/lib/credlock/registry'
 import { findDeploymentBlock } from '@/lib/credlock/deployBlock'
 import { scanLogs } from '@/lib/credlock/logs'
+import { registryLogs } from '@/lib/credlock/registryLogs'
 import { CREDLOCK_CHAIN, loadCredLockConfig } from '@/lib/credlock/config'
 
 const VERDICTS = ['NONE', 'ALLOW', 'BLOCK'] as const
@@ -60,35 +61,39 @@ export async function GET(request: NextRequest) {
 
     const regAddr = getAddress(cfg.registryAddress)
     const gateAddr = getAddress(cfg.gateAddress)
-    const [owner, pledged, verdict, financed, regLogs, pledgeLogs, verdictLogs, finLogs] =
+    // Sepolia history comes from the Blockscout indexer: the public RPC
+    // rotates nodes and returns inconsistent results for historical getLogs.
+    // Views (owner/pledged) stay on RPC: latest-state reads are consistent.
+    const [owner, pledged, verdict, financed, indexed, verdictLogs, finLogs] =
       await Promise.all([
         registry.assetOwner(assetId) as Promise<string>,
         registry.isPledged(assetId) as Promise<boolean>,
         readVerdict(gate, assetId),
         gate.financed(assetId) as Promise<boolean>,
-        scanLogs(sepolia, { address: regAddr, topics: [REGISTER_SIG, assetId] }, sepoliaDeploy),
-        scanLogs(sepolia, { address: regAddr, topics: [PLEDGE_SIG, assetId] }, sepoliaDeploy),
+        registryLogs(regAddr, assetId),
         scanLogs(cc, { address: gateAddr, topics: [VERDICT_RECORDED_SIG, assetId] }, ccDeploy),
         scanLogs(cc, { address: gateAddr, topics: [FINANCED_SIG, assetId] }, ccDeploy),
       ])
+    const regLogs = indexed.registered
+    const pledgeLogs = indexed.pledged
 
     const steps: AssetStep[] = []
     for (const l of regLogs) {
       steps.push({
         step: 'registered',
         chain: CREDLOCK_CHAIN.sourceChainName,
-        txHash: l.transactionHash,
+        txHash: l.txHash,
         detail: 'AssetRegistered — CLEAR fact',
-        explorer: SEPOLIA_TX + l.transactionHash,
+        explorer: SEPOLIA_TX + l.txHash,
       })
     }
     for (const l of pledgeLogs) {
       steps.push({
         step: 'pledged',
         chain: CREDLOCK_CHAIN.sourceChainName,
-        txHash: l.transactionHash,
+        txHash: l.txHash,
         detail: 'AssetPledged — ENCUMBERED fact',
-        explorer: SEPOLIA_TX + l.transactionHash,
+        explorer: SEPOLIA_TX + l.txHash,
       })
     }
     for (const l of verdictLogs) {
