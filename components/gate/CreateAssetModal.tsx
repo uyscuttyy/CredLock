@@ -36,8 +36,6 @@ export function CreateAssetModal({
     }
   }, [open ])
 
-  if (!open) return null
-
   const assetId = nameToAssetId(name)
   const showHash = name.trim() !== '' && isValidAssetId(assetId)
 
@@ -76,6 +74,8 @@ export function CreateAssetModal({
       setCopied(false)
     }
   }
+
+  if (!open) return null
 
   return (
     <div
