@@ -11,7 +11,7 @@ export const GATE_ABI = [
   "function financed(bytes32 assetId) view returns (bool)",
   "function sourceRegistry() view returns (address)",
   "function sourceChainKey() view returns (uint64)",
-  "function requestFinancing(bytes32 assetId) returns (bool)",
+  "function requestFinancingWithProof(bytes32 assetId, uint64 chainKey, uint64 blockHeight, bytes encodedTransaction, bytes32 merkleRoot, tuple(bytes32 hash, bool isLeft)[] siblings, bytes32 lowerEndpointDigest, bytes32[] continuityRoots) returns (bool)",
   "function setSourceRegistry(address registry, uint64 chainKey)",
   "function execute(uint8 action, uint64 chainKey, uint64 blockHeight, bytes encodedTransaction, bytes32 merkleRoot, tuple(bytes32 hash, bool isLeft)[] siblings, bytes32 lowerEndpointDigest, bytes32[] continuityRoots) returns (bool)",
   "event VerdictRecorded(bytes32 indexed assetId, uint8 verdict, bytes32 indexed queryId)",
@@ -54,9 +54,22 @@ export async function submitProof(
   return receipt?.hash ?? tx.hash;
 }
 
-/** Attempt the protected financing action. Reverts on-chain unless ALLOW. */
-export async function requestFinancing(gate: Contract, assetId: string): Promise<string> {
-  const tx = await gate.requestFinancing(assetId);
+/** Borrow with a fresh Attestcoin proof verified inline. Reverts unless CLEAR. */
+export async function requestFinancingWithProof(
+  gate: Contract,
+  assetId: string,
+  proof: InclusionProof,
+): Promise<string> {
+  const tx = await gate.requestFinancingWithProof(
+    assetId,
+    proof.chainKey,
+    proof.headerNumber,
+    proof.txBytes,
+    proof.merkleRoot,
+    proof.siblings,
+    proof.lowerEndpointDigest,
+    proof.continuityRoots,
+  );
   const receipt = await tx.wait();
   return receipt?.hash ?? tx.hash;
 }

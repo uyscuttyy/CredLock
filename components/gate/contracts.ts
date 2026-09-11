@@ -42,10 +42,26 @@ export const GATE_ABI: Abi = [
     outputs: [{ type: 'bool' }],
   },
   {
-    name: 'requestFinancing',
+    name: 'requestFinancingWithProof',
     type: 'function',
     stateMutability: 'nonpayable',
-    inputs: [{ name: 'assetId', type: 'bytes32' }],
+    inputs: [
+      { name: 'assetId', type: 'bytes32' },
+      { name: 'chainKey', type: 'uint64' },
+      { name: 'blockHeight', type: 'uint64' },
+      { name: 'encodedTransaction', type: 'bytes' },
+      { name: 'merkleRoot', type: 'bytes32' },
+      {
+        name: 'siblings',
+        type: 'tuple[]',
+        components: [
+          { name: 'hash', type: 'bytes32' },
+          { name: 'isLeft', type: 'bool' },
+        ],
+      },
+      { name: 'lowerEndpointDigest', type: 'bytes32' },
+      { name: 'continuityRoots', type: 'bytes32[]' },
+    ],
     outputs: [{ type: 'bool' }],
   },
 ]
