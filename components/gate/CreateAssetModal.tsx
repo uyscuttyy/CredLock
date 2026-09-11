@@ -26,11 +26,13 @@ export function CreateAssetModal({
   const { isConnected } = useAccount()
   const [name, setName] = useState('')
   const [copied, setCopied] = useState(false)
+  const [alreadyListed, setAlreadyListed] = useState<boolean | null>(null)
 
   useEffect(() => {
     if (open) {
       setName('')
       setCopied(false)
+      setAlreadyListed(null)
     }
   }, [open ])
 
@@ -38,6 +40,32 @@ export function CreateAssetModal({
 
   const assetId = nameToAssetId(name)
   const showHash = name.trim() !== '' && isValidAssetId(assetId)
+
+  // Pre-check: the same name always yields the same id, so registering twice
+  // reverts on-chain (and wallets surface that as a bogus gas estimate).
+  // Check first and never offer a doomed signature.
+  useEffect(() => {
+    if (!showHash) {
+      setAlreadyListed(null)
+      return
+    }
+    let live = true
+    setAlreadyListed(null)
+    fetch(`/api/gate/asset?assetId=${assetId}`)
+      .then((r) => r.json())
+      .then((b) => {
+        if (!live) return
+        setAlreadyListed(
+          b.owner !== undefined && b.owner !== '0x0000000000000000000000000000000000000000',
+        )
+      })
+      .catch(() => {
+        if (live) setAlreadyListed(null)
+      })
+    return () => {
+      live = false
+    }
+  }, [assetId, showHash])
 
   async function copy() {
     try {
@@ -106,21 +134,28 @@ export function CreateAssetModal({
         {showHash && (
           <div className="mt-4">
             <p className="text-sm text-ash">List it on Sepolia straight from here. Your wallet signs.</p>
-            <TxAction
-              label="Source asset on Sepolia (CLEAR fact)"
-              chainId={sepolia.id}
-              chainName="Sepolia"
-              address={registryAddress}
-              abi={REGISTRY_ABI}
-              functionName="registerAsset"
-              args={[assetId]}
-              disabled={!isConnected}
-              explorerBase={SEPOLIA_TX}
-              onConfirmed={() => {
-                onRegistered(assetId)
-                onClose()
-              }}
-            />
+            {alreadyListed === true ? (
+              <p className="mt-3 rounded-lg border border-bullion/40 bg-bullion/10 p-4 text-sm font-semibold text-bone">
+                Already listed on Sepolia. Registering again would revert; check it on
+                the verify page instead.
+              </p>
+            ) : (
+              <TxAction
+                label="Source asset on Sepolia (CLEAR fact)"
+                chainId={sepolia.id}
+                chainName="Sepolia"
+                address={registryAddress}
+                abi={REGISTRY_ABI}
+                functionName="registerAsset"
+                args={[assetId]}
+                disabled={!isConnected}
+                explorerBase={SEPOLIA_TX}
+                onConfirmed={() => {
+                  onRegistered(assetId)
+                  onClose()
+                }}
+              />
+            )}
             {!isConnected && (
               <p className="mt-2 text-sm text-ash">Connect your wallet (top right) to sign.</p>
             )}
