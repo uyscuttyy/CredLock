@@ -78,7 +78,7 @@ function txRow(label, value, extra = '') {
 function linkRow(label, url) {
   const y = doc.y
   doc.fillColor(C.grey).font('Helvetica-Bold').fontSize(10).text(label)
-  doc.fillColor(C.gold).font('Courier').fontSize(9.5).text(url, { link: url, underline: true, lineGap: 2, wordBreak: true })
+  doc.fillColor(C.ink).font('Courier').fontSize(9.5).text(url, { link: url, underline: true, lineGap: 2, wordBreak: true })
   const h = doc.y - y + 8
   doc.link(M, y, W - M * 2, h, url)
   gap(10)
@@ -97,7 +97,7 @@ gap(2)
 body('CredLock checks before Creditcoin lends. Same pattern for RWA collateral: never finance what is already pledged elsewhere.')
 gap(2)
 body('Built for lenders and Creditcoin credit apps that need a gate before money moves.')
-gap(14)
+gap(20)
 
 const colW = (W - M * 2 - 16) / 2
 const y0 = doc.y
@@ -113,7 +113,7 @@ const yB = card(M + colW + 16, colW, 'Clear  ->  ALLOWED', C.green, [
   'Creditcoin verifies inside Borrow.',
   'Financing executes.',
 ], C.greenSoft)
-doc.y = Math.max(yA, yB) + 28
+doc.y = Math.max(yA, yB) + 40
 body('One rule: the financing transaction carries its own proof, or it does not happen.')
 
 // ---------------- PAGE 2 ----------------
@@ -133,7 +133,7 @@ const steps = [
 for (const [t, d] of steps) {
   doc.fillColor(C.ink).font('Helvetica-Bold').fontSize(11).text(t)
   doc.fillColor(C.grey).font('Helvetica').fontSize(10).text(d, { lineGap: 3 })
-  gap(10)
+  gap(16)
 }
 eyebrow('Deployed now')
 gap(4)
@@ -155,14 +155,14 @@ body('Asset 0x6349...0ae9e3. Registered on Sepolia, never pledged. Borrow carrie
 gap(6)
 txRow('Register (Sepolia)', '0x1f3fee534c5f757ebd70b979102d43ef01d6baea07a921ff59db72b3c6c1c6d4')
 txRow('Borrow (Creditcoin, block 5470652)', '0xab138a65bc019554e1bf5a161451ece5b977791df90c0e2610e8f7188fd16c7d')
-gap(6)
+gap(18)
 eyebrow('Scenario B  -  pledged asset reverts')
 gap(4)
 body('Asset 0x8bfc...024d9 (uyscutty). Registered, then pledged on Sepolia. Borrow carried the fresh pledge proof. The gate reverted with AssetEncumbered, proven on a live node call and covered by the revert tests. No path through this gate can finance it.')
 gap(6)
 txRow('Pledge (Sepolia, block 11684010)', '0xd0625d429caab95496629bde3c50c865ac9d4c04bc2e2881d7e39fcd2f23c107')
 txRow('Revert reason', 'AssetEncumbered  (0x01d7f74f)  -  live call + 20/20 forge tests')
-gap(6)
+gap(18)
 eyebrow('Links')
 gap(6)
 linkRow('Live app', LINKS.app)
