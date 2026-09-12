@@ -11,8 +11,8 @@ const OUT = path.resolve('docs/CredLock-deck.pdf')
 const C = {
   paper: '#FFFFFF',
   wash: '#F4F1E8',
-  ink: '#141414',
-  grey: '#5C5C5C',
+  ink: '#000000',
+  grey: '#333333',
   gold: '#9A7418',
   goldSoft: '#F1E3B8',
   green: '#0E7A4F',
@@ -66,19 +66,19 @@ function card(x, w, title, titleColor, lines, soft) {
   return y + 118
 }
 function addrRow(label, value) {
-  doc.fillColor(C.grey).font('Helvetica-Bold').fontSize(9).text(label)
-  doc.fillColor(C.ink).font('Courier').fontSize(9.5).text(value, { lineGap: 2, wordBreak: true })
+  doc.fillColor(C.grey).font('Helvetica-Bold').fontSize(10).text(label)
+  doc.fillColor(C.ink).font('Courier-Bold').fontSize(10).text(value, { lineGap: 3, wordBreak: true })
   gap(6)
 }
 function txRow(label, value, extra = '') {
-  doc.fillColor(C.grey).font('Helvetica-Bold').fontSize(9).text(label + (extra ? '  ' + extra : ''))
-  doc.fillColor(C.ink).font('Courier').fontSize(9.5).text(value, { lineGap: 2, wordBreak: true })
+  doc.fillColor(C.grey).font('Helvetica-Bold').fontSize(10).text(label + (extra ? '  ' + extra : ''))
+  doc.fillColor(C.ink).font('Courier-Bold').fontSize(10).text(value, { lineGap: 3, wordBreak: true })
   gap(6)
 }
 function linkRow(label, url) {
   const y = doc.y
   doc.fillColor(C.grey).font('Helvetica-Bold').fontSize(10).text(label)
-  doc.fillColor(C.ink).font('Courier').fontSize(9.5).text(url, { link: url, underline: true, lineGap: 2, wordBreak: true })
+  doc.fillColor(C.ink).font('Courier-Bold').fontSize(10).text(url, { link: url, underline: true, lineGap: 3, wordBreak: true })
   const h = doc.y - y + 8
   doc.link(M, y, W - M * 2, h, url)
   gap(10)
