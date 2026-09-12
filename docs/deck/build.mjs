@@ -9,18 +9,23 @@ import path from 'node:path'
 const OUT = path.resolve('docs/CredLock-deck.pdf')
 
 const C = {
-  bg: '#0B0D0E',
-  panel: '#14181B',
-  bone: '#F4F2EC',
-  ash: '#9BA4A8',
-  gold: '#E3A82B',
-  green: '#34D399',
-  red: '#F87171',
+  paper: '#FFFFFF',
+  wash: '#F4F1E8',
+  ink: '#141414',
+  grey: '#5C5C5C',
+  gold: '#9A7418',
+  goldSoft: '#F1E3B8',
+  green: '#0E7A4F',
+  greenSoft: '#DDF2E6',
+  red: '#B3372F',
+  redSoft: '#F7DDD9',
 }
-const W = 595.28 // A4 portrait
-const M = 56
+const W = 595.28
+const H = 841.89
+const M = 64
 
 const LINKS = {
+  app: 'https://credlock-neon.vercel.app/',
   repo: 'https://github.com/uyscuttyy/CredLock',
   gate: 'https://creditcoin-testnet.blockscout.com/address/0xF1028099d9CeE27b355159beCD111c8f9A409F67',
   registry: 'https://sepolia.etherscan.io/address/0xae543bb778df66774585b99d9135676bc5d99c2a',
@@ -30,7 +35,7 @@ const LINKS = {
   prover: 'https://prover.cc3-testnet.creditcoin.network',
 }
 
-const doc = new PDFDocument({ size: 'A4', margins: { top: 48, bottom: 48, left: M, right: M }, info: {
+const doc = new PDFDocument({ size: 'A4', margins: { top: 56, bottom: 56, left: M, right: M }, info: {
   Title: 'CredLock - Cross-chain collateral safety for Creditcoin financing',
   Author: 'CredLock',
 } })
@@ -38,138 +43,122 @@ doc.pipe(fs.createWriteStream(OUT))
 
 function bg() {
   doc.save()
-  doc.rect(0, 0, W, 841.89).fill(C.bg)
+  doc.rect(0, 0, W, H).fill(C.paper)
+  doc.rect(0, 0, W, 10).fill(C.gold)
   doc.restore()
 }
-function h1(t) { doc.fillColor(C.bone).font('Helvetica-Bold').fontSize(30).text(t); }
-function sub(t) { doc.fillColor(C.ash).font('Helvetica').fontSize(12).text(t); }
-function h2(t) { doc.fillColor(C.gold).font('Helvetica-Bold').fontSize(11).text(t.toUpperCase()); }
-function body(t, opts = {}) {
-  doc.fillColor(opts.color || C.bone).font(opts.bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(10.5)
-  doc.text(t, { lineGap: 3, ...opts.textOpts })
-}
-function small(t, color = C.ash) {
-  doc.fillColor(color).font('Helvetica').fontSize(8.5).text(t, { lineGap: 2 })
-}
-function mono(t, color = C.bone) {
-  doc.fillColor(color).font('Courier').fontSize(8).text(t)
-}
-function gap(n = 10) { doc.moveDown(n / 12) }
-function arrow() {
-  const x = M
-  doc.save()
-  doc.fillColor(C.ash).font('Helvetica').fontSize(11).text('v', x, doc.y)
-  doc.restore()
-  doc.moveDown(0.2)
-}
-function badge(label, color) {
+function gap(n = 12) { doc.moveDown(n / 12) }
+function eyebrow(t) { doc.fillColor(C.gold).font('Helvetica-Bold').fontSize(10).text(t.toUpperCase()); }
+function h1(t) { doc.fillColor(C.ink).font('Helvetica-Bold').fontSize(32).text(t); }
+function standfirst(t) { doc.fillColor(C.grey).font('Helvetica').fontSize(12).text(t, { lineGap: 3 }); }
+function body(t) { doc.fillColor(C.ink).font('Helvetica').fontSize(10.5).text(t, { lineGap: 4 }); }
+function small(t, color = C.grey) { doc.fillColor(color).font('Helvetica').fontSize(8.5).text(t, { lineGap: 2 }); }
+function mono(t) { doc.fillColor(C.ink).font('Courier').fontSize(7.5).text(t); }
+function card(x, w, title, titleColor, lines, soft) {
   const y = doc.y
   doc.save()
-  doc.roundedRect(M, y, 190, 26, 4).fill(color)
-  doc.fillColor('#0B0D0E').font('Helvetica-Bold').fontSize(11)
-  doc.text(label, M, y + 7, { width: 190, align: 'center' })
+  doc.roundedRect(x, y, w, 118, 6).fill(soft)
+  doc.fillColor(titleColor).font('Helvetica-Bold').fontSize(11)
+  doc.text(title, x + 12, y + 10, { width: w - 24 })
+  doc.fillColor(C.ink).font('Helvetica').fontSize(9)
+  doc.text(lines.join('\n'), x + 12, y + 32, { width: w - 24, lineGap: 3 })
   doc.restore()
-  doc.y = y + 32
+  return y + 118
 }
 function linkLine(label, url) {
-  const y = doc.y
-  doc.fillColor(C.ash).font('Helvetica').fontSize(8.5).text(label + '  ', { continued: true })
+  doc.fillColor(C.grey).font('Helvetica').fontSize(8.5).text(label + '  ', { continued: true })
   doc.fillColor(C.gold).font('Helvetica').fontSize(8.5).text(url, { link: url, underline: true })
   doc.moveDown(0.35)
 }
 
 // ---------------- PAGE 1 ----------------
 bg()
-small('CREDITCOIN BUIDL HACKATHON', C.gold)
-gap(4)
-doc.fillColor(C.bone).font('Helvetica-Bold').fontSize(44).text('CredLock')
-sub('Cross-chain collateral safety for Creditcoin financing')
-gap(8)
-body('An asset can be pledged as collateral on one chain, then presented to Creditcoin for financing. The second lender cannot see the first pledge.')
-gap(4)
-body('CredLock checks the collateral state before Creditcoin lends. Clear means go. Pledged means the financing transaction itself refuses.', { bold: false })
-gap(10)
-
-h2('Pledged elsewhere')
-gap(2)
-body('Asset pledged on Sepolia')
-arrow()
-body('Attestcoin proves the fact')
-arrow()
-body('Creditcoin verifies the proof inside the Borrow transaction')
-arrow()
-badge('BLOCKED  -  AssetEncumbered', C.red)
+eyebrow('Creditcoin BUIDL hackathon')
 gap(6)
-
-h2('Clear')
+h1('CredLock')
 gap(2)
-body('Asset clear on Sepolia')
-arrow()
-body('Attestcoin proves the fact')
-arrow()
-body('Creditcoin verifies the proof inside the Borrow transaction')
-arrow()
-badge('ALLOWED  -  Financing executes', C.green)
+standfirst('Collateral safety for Creditcoin financing.')
+gap(10)
+body('An asset gets pledged as collateral on one chain, then shows up at Creditcoin asking for financing. The second lender cannot see the first pledge.')
+gap(2)
+body('CredLock checks before Creditcoin lends. Same pattern for RWA collateral: never finance what is already pledged elsewhere.')
+gap(2)
+body('Built for lenders and Creditcoin credit apps that need a gate before money moves.')
+gap(14)
+
+const colW = (W - M * 2 - 16) / 2
+const y0 = doc.y
+const yA = card(M, colW, 'Pledged  ->  BLOCKED', C.red, [
+  'Pledged on Sepolia.',
+  'Attestcoin proves it.',
+  'Creditcoin verifies inside Borrow.',
+  'Reverts: AssetEncumbered.',
+], C.redSoft)
+const yB = card(M + colW + 16, colW, 'Clear  ->  ALLOWED', C.green, [
+  'Clear on Sepolia.',
+  'Attestcoin proves it.',
+  'Creditcoin verifies inside Borrow.',
+  'Financing executes.',
+], C.greenSoft)
+doc.y = Math.max(yA, yB) + 28
+body('One rule: the financing transaction carries its own proof, or it does not happen.')
 
 // ---------------- PAGE 2 ----------------
 doc.addPage(); bg()
-h2('How it works')
-gap(2)
-h1('Borrow carries the proof.')
-gap(4)
-body('The proof is not displayed by the frontend and trusted. The Borrow transaction carries a fresh Attestcoin proof to the Creditcoin gate. The gate verifies it inline through the BlockProver precompile and derives the decision from the proven transaction itself.')
-gap(8)
-h2('Architecture')
-gap(4)
-const flow = [
-  'Sepolia SourcePledgeRegistry  -  emits AssetRegistered / AssetPledged',
-  'Collateral fact for one asset id',
-  'Attestcoin  -  Merkle inclusion + continuity proof (usc-sdk)',
-  'Creditcoin CredLockGate.requestFinancingWithProof',
-]
-for (const f of flow) { body(f); arrow() }
-doc.fillColor(C.bone).font('Helvetica-Bold').fontSize(10.5).text('CLEAR  ->  FINANCE      |      PLEDGED  ->  BLOCK')
-gap(8)
-h2('Deployed configuration')
-gap(2)
-mono('Gate (Creditcoin 102031): 0xF1028099d9CeE27b355159beCD111c8f9A409F67')
-mono('Registry (Sepolia):       0xae543bb778df66774585b99d9135676bc5d99c2a')
-mono('Source chainKey: 1  |  Verifier precompile: 0x0000..0FD2')
+eyebrow('How it works')
 gap(6)
-h2('Built with')
-gap(2)
-body('Solidity + Foundry (20 contract tests, all green). @gluwa/usc-sdk proof builder. EvmV1Decoder event checks. Next.js + wagmi UI where every write is signed by the user wallet. No server key, no mocks on the verification path.')
+h1('Borrow carries the proof.')
+gap(6)
+standfirst('Not trusted from the frontend alone. The Borrow transaction brings a fresh Attestcoin proof to the gate. The gate verifies it inline and decides from the proven fact.')
+gap(12)
+const steps = [
+  ['1  Sepolia registry', 'SourcePledgeRegistry emits AssetRegistered (clear) and AssetPledged (encumbered) for one asset id.'],
+  ['2  Attestcoin proof', 'Merkle inclusion plus continuity proof for the newest fact, built with the usc-sdk proof builder.'],
+  ['3  Creditcoin gate', 'requestFinancingWithProof verifies through the BlockProver precompile (0xFD2) and checks the trusted emitter, chain, and event.'],
+  ['4  Decision', 'Clear fact: records ALLOW, executes financing. Pledged fact: reverts AssetEncumbered. A recorded BLOCK can never reopen.'],
+]
+for (const [t, d] of steps) {
+  doc.fillColor(C.ink).font('Helvetica-Bold').fontSize(11).text(t)
+  doc.fillColor(C.grey).font('Helvetica').fontSize(10).text(d, { lineGap: 3 })
+  gap(10)
+}
+eyebrow('Deployed now')
+gap(4)
+mono('Gate (Creditcoin 102031):  0xF1028099d9CeE27b355159beCD111c8f9A409F67')
+mono('Registry (Sepolia):        0xae543bb778df66774585b99d9135676bc5d99c2a')
+mono('Source chainKey 1  |  20 Foundry tests, all green')
+gap(4)
+small('Solidity + Foundry. EvmV1Decoder event checks. Next.js + wagmi UI, every write signed by the user wallet. No server key, no mocks on the verification path.')
 
 // ---------------- PAGE 3 ----------------
 doc.addPage(); bg()
-h2('Proof it works')
-gap(2)
-h1('Two assets, two outcomes.')
+eyebrow('Proof it works')
 gap(6)
-h2('Scenario A  -  clear asset borrows')
+h1('Two assets, two outcomes.')
+gap(12)
+eyebrow('Scenario A  -  clear asset borrows')
+gap(4)
+body('Asset 0x6349...0ae9e3. Registered on Sepolia, never pledged. Borrow carried the fresh registration proof. Verified on-chain, financing executed, ALLOW recorded.')
 gap(2)
-body('Asset 0x6349...0ae9e3. Registered on Sepolia, never pledged. Borrow submitted the fresh registration proof inside the financing transaction. Verified on-chain, financing executed, verdict ALLOW, financed true.')
+mono('Register:  0x1f3fee534c5f757ebd70b979102d43ef01d6baea07a921ff59db72b3c6c1c6d4')
+mono('Borrow:    0xab138a65bc019554e1bf5a161451ece5b977791df90c0e2610e8f7188fd16c7d  (block 5470652)')
+gap(12)
+eyebrow('Scenario B  -  pledged asset reverts')
+gap(4)
+body('Asset 0x8bfc...024d9 (uyscutty). Registered, then pledged on Sepolia. Borrow carried the fresh pledge proof. The gate reverted with AssetEncumbered, proven on a live node call and covered by the revert tests. No path through this gate can finance it.')
 gap(2)
-mono('Sepolia register: 0x1f3fee534c5f757ebd70b979102d43ef01d6baea07a921ff59db72b3c6c1c6d4')
-mono('Creditcoin borrow: 0xab138a65bc019554e1bf5a161451ece5b977791df90c0e2610e8f7188fd16c7d (block 5470652)')
-gap(8)
-h2('Scenario B  -  pledged asset reverts')
-gap(2)
-body('Asset 0x8bfc...024d9 (uyscutty). Registered, then pledged on Sepolia. Borrow submitted the fresh pledge proof. The gate reverted with AssetEncumbered (selector 0x01d7f74f) on a live node call, and the forge suite covers the mined revert path. No financing possible through this gate.')
-gap(2)
-mono('Sepolia pledge:   0xd0625d429caab95496629bde3c50c865ac9d4c04bc2e2881d7e39fcd2f23c107 (block 11684010)')
-mono('Revert reason:    AssetEncumbered(), proven live + 20/20 forge tests')
-gap(8)
-h2('Links')
-gap(2)
+mono('Pledge:    0xd0625d429caab95496629bde3c50c865ac9d4c04bc2e2881d7e39fcd2f23c107  (block 11684010)')
+mono('Revert:    AssetEncumbered (0x01d7f74f), live call + 20/20 forge tests')
+gap(12)
+eyebrow('Links')
+gap(4)
+linkLine('Live app', LINKS.app)
 linkLine('Repository', LINKS.repo)
-linkLine('Gate contract (Blockscout)', LINKS.gate)
-linkLine('Registry (Etherscan)', LINKS.registry)
-linkLine('Borrow tx, scenario A', LINKS.borrowA)
-linkLine('Register tx, scenario A', LINKS.regA)
-linkLine('Pledge tx, scenario B', LINKS.pledgeB)
+linkLine('Gate contract', LINKS.gate)
+linkLine('Registry contract', LINKS.registry)
+linkLine('Borrow tx (A)', LINKS.borrowA)
+linkLine('Register tx (A)', LINKS.regA)
+linkLine('Pledge tx (B)', LINKS.pledgeB)
 linkLine('Proof builder', LINKS.prover)
-gap(2)
-small('Live app runs locally from the repository (see README). No staging URL is claimed.')
 doc.end()
 console.log('wrote', OUT)
