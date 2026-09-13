@@ -39,7 +39,7 @@ export function TxAction({
   const { switchChain, isPending: switching } = useSwitchChain()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const write = useWriteContract() as any
-  const receipt = useWaitForTransactionReceipt({ hash: write.data })
+  const receipt = useWaitForTransactionReceipt({ chainId, hash: write.data })
   const [seen, setSeen] = useState<string | null>(null)
 
   useEffect(() => {
@@ -69,7 +69,13 @@ export function TxAction({
       ) : (
         <button
           onClick={() =>
-            write.writeContract({ address: address as `0x${string}`, abi, functionName, args })
+            write.writeContract({
+              address: address as `0x${string}`,
+              abi,
+              functionName,
+              args,
+              chainId,
+            })
           }
           disabled={disabled || write.isPending || receipt.isLoading}
           className={`rounded-lg px-5 py-2 text-sm font-semibold text-carbon-950 disabled:opacity-50 ${
